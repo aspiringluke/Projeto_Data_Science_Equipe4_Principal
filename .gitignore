@@ -1,0 +1,8 @@
+# providers do terraform
+.terraform/
+# outros arquivos do terraform
+*terraform*
+
+# Arquivos de Log
+*.log
+
