@@ -1,0 +1,3 @@
+[submodule "gerador"]
+	path = gerador
+	url = https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git
