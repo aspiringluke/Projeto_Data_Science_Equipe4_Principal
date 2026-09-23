@@ -1,3 +1,6 @@
 [submodule "gerador"]
 	path = gerador
 	url = https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git
+[submodule "etl"]
+	path = etl
+	url = https://github.com/GabrielFreitas836/Projeto_DataScience_Equipe4_Limpeza_De_Dados.git
