@@ -1,4 +1,4 @@
-# Projeto Integrado Data Science 
+# Projeto Integrado Data Science
 Projeto Integrado do módulo de **Data Science** na UNFEOB
 
 ## 👨‍💻 Equipe
@@ -15,12 +15,12 @@ Projeto Integrado do módulo de **Data Science** na UNFEOB
 O projeto está sendo desenvolvido em parceria com a empresa **MIMA Games & Design LTDA.**, inscrita no CNPJ **34.362.072/0001-09**.
 A empresa participa do projeto fornecendo contexto e informações relacionadas ao setor de desenvolvimento de jogos digitais para utilização acadêmica durante a elaborção da solução.
 
-## Problema
+### Problema
 Jogos digitais podem gerar grandes quantidades de dados relacionados à utilização do produto, aos jogadores, às partidas, ao comportamento dos usuários, às informações técnicas do jogo e às movimentações financeiras.
 Quando esses dados não são coletados, armazenados e processados de maneira adequada, informações importantes podem deixar de ser utilizadas pelos desenvolvedores e gestores durante a tomada de decisão.
 A análise desses dados pode contribuir para compreender o comportamento dos jogadores, identificar padrões de utilização, acompanhar o desempenho comercial do produto e encontrar situações que necessitem de uma investigação mais aprofundada.
 
-## Objetivo
+### Objetivo
 Construir uma **pipeline de Big Data** que colete dados de jogos digitais, como dados de uso, jogadores, informações técnicas e receita gerada, a fim de identificar padrões que permitam aos desenvolvedores e gestores:
 - ajustar o design do jogo para corrigir problemas;
 - monitorar e prever o engajamento de determinado conteúdo;
@@ -29,92 +29,16 @@ Construir uma **pipeline de Big Data** que colete dados de jogos digitais, como 
 - encontrar padrões e pontos de atenção nos dados coletados;
 - utilizar os dados como apoio para futuras tomadas de decisão.
 
-## 🎮 Telemetria em Jogos Digitais
+### 🎮 Telemetria em Jogos Digitais
 A telemetria em jogos digitais consiste na coleta de dados gerados durante a utilização de um jogo.
 Essas informações podem envolver dados dos jogadores, localização, plataformas utilizadas, tempo de sessão, partidas, comportamento dentro do jogo, transações financeiras, receita e informações técnicas.
 No projeto, esses dados serão utilizados como base para as etapas de armazenamento, processamento e análise da pipeline de Big Data.
 
 ## 🐍 Gerador de Dados
+
 Como o projeto não utiliza diretamente dados provenientes de um jogo real, foi desenvolvido um **gerador de dados sintéticos em Python**.
-Atualmente, o gerador cria arquivos CSV relacionados a:
-- jogadores;
-- sessões;
-- partidas;
-- compras;
-- itens;
-- itens das compras.
 
-Os dados possuem identificadores que permitem relacionar os diferentes arquivos gerados.
-
-## 🧰 Dependências Necessárias
-Para executar o projeto é necessário possuir o **Python** instalado.
-As dependências estão disponíveis no arquivo `requirements.txt`.
-Para instalar:
-```bash
-pip install -r requirements.txt
-```
-
-## 🗂 Estrutura das Pastas
-```text
-Gerador-de-dados-PI/
-│
-├── docs/
-│
-├── gerador/
-│   ├── data/
-│   │   └── base_geografica/
-│   │
-│   ├── output/
-│   │
-│   ├── src/
-│   │   ├── compras.py
-│   │   ├── itens.py
-│   │   ├── itens_compra.py
-│   │   ├── jogadores.py
-│   │   ├── partidas.py
-│   │   ├── regras.py
-│   │   └── sessoes.py
-│   │
-│   └── main.py
-│
-├── .gitignore
-├── README.md
-└── requirements.txt
-```
-- **`docs/`** — documentação do projeto;
-- **`gerador/`** — código responsável pela geração dos dados;
-- **`src/`** — módulos responsáveis pela geração de cada conjunto de dados;
-- **`data/`** — dados auxiliares utilizados pelo gerador;
-- **`output/`** — arquivos CSV gerados pelo sistema;
-- **`main.py`** — arquivo principal responsável por iniciar a geração dos dados.
-
-## ▶️ Como Executar
-
-### 1. Crie um ambiente virtual
-```bash
-python -m venv .venv
-```
-### 2. Ative o ambiente virtual
-No Windows:
-```bash
-.venv\Scripts\activate
-```
-No Linux ou macOS:
-```bash
-source .venv/bin/activate
-```
-### 3. Instale as dependências
-```bash
-pip install -r requirements.txt
-```
-### 4. Execute o gerador
-```bash
-python gerador/main.py
-```
-Após a execução, os arquivos CSV serão criados em:
-```text
-geradgerador/output/
-```
+Acesse-o no submódulo [gerador](./gerador/). Lá encontrará instruções de execução
 
 
 ## 📈 Análise Exploratória de Dados
@@ -125,10 +49,12 @@ geradgerador/output/
 
 ## ⚙️ DevOps
 
-## 📝 Exemplo de Uso
 
-## 🧭 Como acessar o repositório
-### Clonar o repositório
+## 🧭 Clonando o repositório
 
 ```bash
-git clone https://github.com/luisvitor-unifeob/Gerador-de-dados-PI.git
+git clone https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal.git --recurse-submodules
+```
+
+> [!NOTE]
+> Note que nosso repositório utiliza submódulos git para melhor gerenciar todas as partes do projeto. Certifique-se de executar o `git clone` com a opção `--recurse-submodules` para garantir que eles sejam baixados corretamente
