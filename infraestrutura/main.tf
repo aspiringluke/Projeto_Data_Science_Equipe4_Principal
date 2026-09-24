@@ -25,11 +25,7 @@ resource "libvirt_volume" "ubuntu_base" {
 resource "libvirt_volume" "vm_disk" {
   count = local.vm_count
 
-  # Tivemos que alterar esse trecho para criar vários discos,
-  # pois, do contrário, apenas 1 era criado, fazendo com que
-  # uma VM trave (lock) o arquivo para escrita, impedindo
-  # a outra de utilizar.
-  name   = "ubuntu-24.04-base-${count.index + 1}.qcow2"
+  name   = "devops_${count.index + 1}.qcow2"
   pool   = "default"
   format = "qcow2"
 
