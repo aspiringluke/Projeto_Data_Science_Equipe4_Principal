@@ -16,9 +16,7 @@ O projeto está sendo desenvolvido em parceria com a empresa **MIMA Games & Desi
 A empresa participa do projeto fornecendo contexto e informações relacionadas ao setor de desenvolvimento de jogos digitais para utilização acadêmica durante a elaborção da solução.
 
 ### Problema
-Jogos digitais podem gerar grandes quantidades de dados relacionados à utilização do produto, aos jogadores, às partidas, ao comportamento dos usuários, às informações técnicas do jogo e às movimentações financeiras.
-Quando esses dados não são coletados, armazenados e processados de maneira adequada, informações importantes podem deixar de ser utilizadas pelos desenvolvedores e gestores durante a tomada de decisão.
-A análise desses dados pode contribuir para compreender o comportamento dos jogadores, identificar padrões de utilização, acompanhar o desempenho comercial do produto e encontrar situações que necessitem de uma investigação mais aprofundada.
+Jogos digitais podem gerar grandes quantidades de dados relacionados à sua utilização, incluindo ações dos jogadores, operações financeiras e informações técnicas do software. A análise desses dados permite compreender o comportamento dos jogadores, identificar padrões de utilização, acompanhar o desempenho comercial do produto e encontrar situações que necessitem de investigações aprofundadas. Como a quantidade de dados é massiva, este enquadra-se como um problema de Big Data.
 
 ### Objetivo
 Construir uma **pipeline de Big Data** que colete dados de jogos digitais, como dados de uso, jogadores, informações técnicas e receita gerada, a fim de identificar padrões que permitam aos desenvolvedores e gestores:
@@ -30,9 +28,7 @@ Construir uma **pipeline de Big Data** que colete dados de jogos digitais, como 
 - utilizar os dados como apoio para futuras tomadas de decisão.
 
 ### 🎮 Telemetria em Jogos Digitais
-A telemetria em jogos digitais consiste na coleta de dados gerados durante a utilização de um jogo.
-Essas informações podem envolver dados dos jogadores, localização, plataformas utilizadas, tempo de sessão, partidas, comportamento dentro do jogo, transações financeiras, receita e informações técnicas.
-No projeto, esses dados serão utilizados como base para as etapas de armazenamento, processamento e análise da pipeline de Big Data.
+A telemetria em jogos digitais consiste na coleta remota de dados gerados durante a utilização de um jogo. É uma abordagem que utiliza ferramentas de software dentro do próprio jogo ou em parelelo a ele que envia informações através da rede, permitindo aos desenvolvedores analisar uma quantidade muito maior de dados do que seria possível num ambiente de desenvolvimento, com a vantagem dos dados refletirem o real funcionamento do jogo e as ações dos jogadores.
 
 ## 🐍 Gerador de Dados
 
