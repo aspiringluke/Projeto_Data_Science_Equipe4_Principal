@@ -34,7 +34,7 @@ A telemetria em jogos digitais consiste na coleta remota de dados gerados durant
 
 Como o projeto não utiliza diretamente dados provenientes de um jogo real, foi desenvolvido um **gerador de dados sintéticos em Python**.
 
-Acesse-o no submódulo [gerador](./gerador/). Lá encontrará instruções de execução
+Acesse-o no submódulo [gerador](https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git). Lá encontrará instruções de execução. Note que se trata de um repositório separado
 
 
 ## 📈 Análise Exploratória de Dados
