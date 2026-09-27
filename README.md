@@ -11,6 +11,15 @@ Projeto Integrado do módulo de **Data Science** na UNFEOB
 - Maria Luiza Tavares Procopio — RA: 24001256
 - Thierry Antonello Pengo — RA: 24000073
 
+## 🧭 Clonando o repositório
+
+```bash
+git clone https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal.git --recurse-submodules
+```
+
+> [!NOTE]
+> Note que nosso repositório utiliza submódulos git para melhor gerenciar todas as partes do projeto. Certifique-se de executar o `git clone` com a opção `--recurse-submodules` para garantir que eles sejam baixados corretamente
+
 ## 🚩 Visão do Projeto
 O projeto está sendo desenvolvido em parceria com a empresa **MIMA Games & Design LTDA.**, inscrita no CNPJ **34.362.072/0001-09**.
 A empresa participa do projeto fornecendo contexto e informações relacionadas ao setor de desenvolvimento de jogos digitais para utilização acadêmica durante a elaborção da solução.
@@ -45,12 +54,3 @@ Acesse-o no submódulo [gerador](https://github.com/luisvitor-unifeob/Gerador_de
 
 ## ⚙️ DevOps
 
-
-## 🧭 Clonando o repositório
-
-```bash
-git clone https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal.git --recurse-submodules
-```
-
-> [!NOTE]
-> Note que nosso repositório utiliza submódulos git para melhor gerenciar todas as partes do projeto. Certifique-se de executar o `git clone` com a opção `--recurse-submodules` para garantir que eles sejam baixados corretamente
