@@ -6,6 +6,7 @@ Para garantir a idempotência da infraestrutura, poupar tempo de implantação e
 - Instalação de software e demais configurações com Ansible
 
 As máquinas virtuais são executadas em ambientes Linux utilizando a biblioteca libvirt, o módulo KVM e o emulador QEMU
+
 Seguem abaixo as instruções de implantação.
 
 [Equipe](/README.md#-equipe)
@@ -57,7 +58,7 @@ curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.
 
 chmod +x install-opentofu.sh
 
-./install-opentofu.sh --install-method deb (se não ser com esse codigo, digite: ./install-opentofu.sh --install-method standalone --skip-verify)
+./install-opentofu.sh --install-method deb
 
 # Remova o instalador depois
 rm install-opentofu.sh
@@ -92,7 +93,7 @@ virsh net-autostart default
 
 ### 3. Corrigir erro de permissão
 
-Se o seu ambiente linux estiver utilizando AppArmor, um erro (ou bug?) pode fazer com que o disco das VMs fique inacessível por problemas de permissão. Se isso ocorrer, é provável que seja preciso alterar a opção `security_driver` no arquivo `/etc/libvirt/qemu.conf`. Se não souber como fazer isso, eis o passo a passo:
+Se o seu ambiente linux estiver utilizando AppArmor, um erro (ou bug?) pode fazer com que o disco das VMs fique inacessível por problemas de permissão, conforme [esta issue](https://github.com/dmacvicar/terraform-provider-libvirt/issues/1163). Se isso ocorrer, é provável que seja preciso alterar a opção `security_driver` no arquivo `/etc/libvirt/qemu.conf`. Se não souber como fazer isso, eis o passo a passo:
 
 1. Acesse o arquivo com Nano (ou seu editor de texto de preferência):
 ```bash
