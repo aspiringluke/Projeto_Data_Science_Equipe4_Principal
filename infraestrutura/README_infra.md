@@ -78,7 +78,7 @@ systemctl status libvirtd # deve mostrar "active" e "enabled"
 virsh net-list --all # default active yes yes
 ```
 
-Caso algum dos dois (ou ambos) não esteja mostrando o output comentado, os quatro comandos seguintes corrigem isso:
+Caso algum dos dois (ou ambos) esteja mostrando "inactive", os quatro comandos seguintes corrigem isso:
 ```bash
 # Inicia e habilita libvirt
 sudo systemctl start libvirtd
@@ -95,7 +95,7 @@ virsh net-autostart default
 
 Se o seu ambiente linux estiver utilizando AppArmor, um erro (ou bug?) pode fazer com que o disco das VMs fique inacessível por problemas de permissão, conforme [esta issue](https://github.com/dmacvicar/terraform-provider-libvirt/issues/1163). Se isso ocorrer, é provável que seja preciso alterar a opção `security_driver` no arquivo `/etc/libvirt/qemu.conf`. Se não souber como fazer isso, eis o passo a passo:
 
-1. Acesse o arquivo com Nano (ou seu editor de texto de preferência):
+1. Acesse o arquivo com Nano (ou seu editor de texto de preferência). O arquivo exige permissões elevadas:
 ```bash
 sudo nano /etc/libvirt/qemu.conf`
 ```
