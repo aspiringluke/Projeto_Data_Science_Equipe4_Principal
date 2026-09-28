@@ -165,6 +165,49 @@ Você se conectou com sucesso à máquina. Certifique-se de testar as duas.
 
 ### 6. Executar o Ansible
 
-Verificar conectividade do Ansible com `ansible all -i \[inventory.ini\] -m ping --private-key ~/.ssh/chave_ssh`
+1. Considerando que está na raiz do repositório, acesse a pasta do Ansible
 
-Executar playbooks do Ansible
+```bash
+cd infraestrutura/ansible
+```
+
+2. Verifique a conectividade do Ansible com as máquinas virtuais
+
+```bash
+ansible all -i inventory.ini -m ping --private-key ~/.ssh/devops_lab
+```
+
+3. Execute o playbook
+
+```bash
+ansible-playbook -i inventory.ini playbook.yml --private-key ~/.ssh/devops_lab
+```
+
+O playbook realiza a preparação do ambiente das máquinas virtuais, instalando:
+
+- Python 3
+- pip
+- venv
+
+Também são criados os diretórios:
+
+- `/home/aluno/projeto`
+- `/home/aluno/projeto/dados`
+
+É criado um ambiente virtual Python em:
+
+```bash
+/home/aluno/projeto/venv
+```
+
+Dentro dele são instaladas as bibliotecas utilizadas pelo gerador:
+
+- babel
+- Faker
+- geonamescache
+- pycountry
+- typing_extensions
+
+O playbook pode ser executado novamente sem causar problemas nas configurações que já foram realizadas.
+
+---
