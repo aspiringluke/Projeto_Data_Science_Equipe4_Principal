@@ -12,7 +12,9 @@ provider "libvirt" {
 }
 
 locals {
-  vm_count = 2
+  # o número de VMs vai mudar. Foi temporariamente reduzido por causa do armazenamento
+  # talvez seja sensato criar algumas VMs manualmente pra ter tamanhos de máquina diferentes?
+  vm_count = 1
 }
 
 resource "libvirt_volume" "ubuntu_base" {
@@ -28,6 +30,8 @@ resource "libvirt_volume" "vm_disk" {
   name   = "devops_${count.index + 1}.qcow2"
   pool   = "default"
   format = "qcow2"
+  size = 21474836480 # 20GB
+  # size = 32212254720 # 30GB
 
   base_volume_id = libvirt_volume.ubuntu_base.id
 }
@@ -58,7 +62,8 @@ resource "libvirt_domain" "vm" {
     # ip fixo pra ficar mais fácil de trabalhar
     # com o ansible
     addresses    = ["192.168.122.${count.index + 10}"]
-    # wait_for_lease = true
+    mac = "52:54:00:00:00:0${count.index+1}"
+    wait_for_lease = true
   }
 
   disk {
