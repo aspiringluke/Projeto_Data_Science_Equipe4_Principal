@@ -54,8 +54,11 @@ resource "libvirt_domain" "vm" {
   cloudinit = libvirt_cloudinit_disk.init[count.index].id
 
   network_interface {
-    network_name   = "default"
-    wait_for_lease = true
+    network_name = "default"
+    # ip fixo pra ficar mais fácil de trabalhar
+    # com o ansible
+    addresses    = ["192.168.122.${count.index + 10}"]
+    # wait_for_lease = true
   }
 
   disk {
