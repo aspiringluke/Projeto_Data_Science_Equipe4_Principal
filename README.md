@@ -46,11 +46,13 @@ Como o projeto não utiliza diretamente dados provenientes de um jogo real, foi 
 Acesse-o no submódulo [gerador](https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git). Lá encontrará instruções de execução. Note que se trata de um repositório separado
 
 
+## ⚙️ DevOps
+
+Explicações técnicas da infraestrutura encontram-se em [infraestrutura/README_infra.md](infraestrutura/README_infra.md)
+
 ## 📈 Análise Exploratória de Dados
 
 ## 🗄️ Big Data
 
 ## 📊 Probabilidade e Estatística
-
-## ⚙️ DevOps
 
