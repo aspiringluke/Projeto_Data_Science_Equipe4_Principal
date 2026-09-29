@@ -55,3 +55,11 @@
         owner: aluno
         group: aluno
         recurse: yes
+    
+    - name: Copiar gerador
+      copy:
+        src: ../../gerador/
+        dest: /home/aluno/projeto/
+        owner: aluno
+        group: aluno
+        mode: 0755
