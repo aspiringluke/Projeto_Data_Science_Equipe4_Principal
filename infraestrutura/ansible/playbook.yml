@@ -38,14 +38,6 @@
       args:
         creates: /home/aluno/projeto/venv/bin/python
 
-    - name: Ajustar dono do ambiente virtual
-      file:
-        path: /home/aluno/projeto/venv
-        state: directory
-        owner: aluno
-        group: aluno
-        recurse: yes
-
     - name: Instalar bibliotecas do gerador
       pip:
         name:
@@ -55,3 +47,11 @@
           - pycountry==26.2.16
           - typing_extensions==4.16.0
         virtualenv: /home/aluno/projeto/venv
+
+    - name: Ajustar dono do ambiente virtual
+      file:
+        path: /home/aluno/projeto/venv
+        state: directory
+        owner: aluno
+        group: aluno
+        recurse: yes
