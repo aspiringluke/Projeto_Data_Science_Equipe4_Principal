@@ -165,6 +165,36 @@ Você se conectou com sucesso à máquina. Certifique-se de testar as duas.
 
 ### 6. Executar o Ansible
 
-Verificar conectividade do Ansible com `ansible all -i \[inventory.ini\] -m ping --private-key ~/.ssh/chave_ssh`
+Acesse o diretório do ansible:
+```bash
+cd infraestrutura/ansible
+```
 
-Executar playbooks do Ansible
+Verificar conectividade das máquinas:
+```bash
+ansible all -i inventory.ini -m ping --private-key ~/.ssh/<chave_ssh>
+```
+
+Se o ping funcionar, executar playbooks
+```bash
+ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/<chave_ssh>
+```
+
+---
+
+## Reconstruindo a infraestrutura
+
+Para resetar a infraestrutura, destrua todos os objetos do tofu:
+```bash
+cd infraestrutura/iac
+tofu destroy
+```
+
+Limpe os hosts SSH conhecidos (~/.ssh/known_hosts), para evitar erros na reconexão:
+```bash
+# execute com todos os IPs atribuídos anteriormente
+ssh-keygen -R 192.168.122.10
+
+# se estiver usando DHCP e tiver hosts demais para lembrar, esse comando limpa todos os que estiverem na sub-rede do libvirt
+for i in {1..255}; do ssh-keygen -R 192.168.122.${i}; done
+```
