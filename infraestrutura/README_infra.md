@@ -21,6 +21,9 @@ Instruções completas encontram-se no [README](/README.md#-clonando-o-repositó
 
 ### 2. Verificar dependências
 
+> [!TIP]
+> O script [install_dep.sh](./install_dep.sh) instala as dependências necessárias automaticamente, basta executar com `./install_dep.sh`. Funciona apenas em sistemas baseados em Ubuntu. Testado no Linux Mint.
+
 - OpenTofu >= 1.12.6
 - Ansible >= 2.16.x
 - Virtualização:
@@ -130,6 +133,20 @@ Note que esse comando não cria nenhuma senha para a chave.
 
 ### 5. Construir infraestrutura
 
+> [!TIP]
+> Esta etapa foi automatizada no script [build_infra.sh](./build_infra.sh)
+> Você pode executá-lo simplesmente com `./build_infra.sh`, mas o script oferece algumas opções úteis:
+> ```
+>   --rebuild,      destrói a infraestrutura e limpa as chaves antes de buildar
+>   --plan-only,    apenas faz o plano tofu e salva num arquivo, sem aplicar
+>   --help,         mostra as opções disponíveis
+>   --version,      mostra a versão
+> ```
+> Todas as opções têm versões curtas que podem ser vistas com `./build_infra.sh --help`
+
+> [!IMPORTANT]
+> O script mencionado não cria chaves SSH nem instala dependências
+
 1. Considerando que está na raiz do repositório, acesse a pasta de infra
 ```bash
 cd infraestrutura/
@@ -172,12 +189,12 @@ cd infraestrutura/ansible
 
 Verificar conectividade das máquinas:
 ```bash
-ansible all -i inventory.ini -m ping --private-key ~/.ssh/<chave_ssh>
+ansible all -i inventory.ini -m ping --private-key ~/.ssh/devops_lab
 ```
 
 Se o ping funcionar, executar playbooks
 ```bash
-ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/<chave_ssh>
+ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/devops_lab
 ```
 
 ---
