@@ -20,6 +20,7 @@ Opções:
   -h, --help                    Mostra essa página de ajuda
   -v, --version                 Mostra a versão atual
   -p, --plan-only               Apenas planeja, não aplica
+  -r, --rebuild                 Destrói a infraestrutura existente sem perguntar
 "
 
 ###############
@@ -54,6 +55,9 @@ for arg in "$@"; do
             plan-only)
                 PLAN_ONLY=1
                 ;;
+            rebuild)
+                REBUILD=1
+                ;;
             *)
                 echo Opção desconhecida
                 exit 1
@@ -73,6 +77,9 @@ for arg in "$@"; do
             p)
                 PLAN_ONLY=1
                 ;;
+            r)
+                REBUILD=1
+                ;;
             *)
                 echo Opção desconhecida
                 exit 1
@@ -86,6 +93,17 @@ done
 ###########################
 ##  CONSTRUINDO A INFRA  ##
 ###########################
+
+if [[ REBUILD -eq 1 ]]; then
+    cd iac
+    echo yes | tofu destroy
+
+    for i in {1..255}; do ssh-keygen -R 192.168.122.${i}; done > /dev/null 2>&1
+
+    cd ..
+    ./build_infra.sh
+fi
+
 
 cd iac
 
@@ -113,6 +131,10 @@ if [[ PLAN_ONLY -ne 1 ]]; then
     [[ $? -ne 0 ]] && msg "${error_color}ERROR${default_color}: Algo deu errado" && exit 1
     msg "${ok_color}SUCCESS${default_color}: Infraestrutura construída."
     msg "Teste o acesso com: ssh aluno@192.168.122.X -i ~/.ssh/chave_ssh"
+    
+    # NÃO FUNCIONA
+    # tme que habilitar manualmente
+    # cd ../ansible
+    # echo yes | ssh aluno@192.168.122.10
+    # ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/devops_lab
 fi
-
-
