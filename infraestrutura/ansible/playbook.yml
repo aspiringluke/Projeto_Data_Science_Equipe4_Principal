@@ -25,14 +25,6 @@
         group: aluno
         mode: '0755'
 
-    - name: Criar diretorio para os dados
-      file:
-        path: /home/aluno/projeto/dados
-        state: directory
-        owner: aluno
-        group: aluno
-        mode: '0755'
-
     - name: Criar ambiente virtual do Python
       command: python3 -m venv /home/aluno/projeto/venv
       args:
@@ -63,3 +55,20 @@
         owner: aluno
         group: aluno
         mode: 0755
+
+    - name: Criar diretorio para os dados
+      file:
+        path: /home/aluno/projeto/gerador/output
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0755'
+    
+    - name: Criar link para o diretorio de dados
+      file:
+        src: /home/aluno/projeto/gerador/output
+        dest: /home/aluno/projeto/dados
+        state: link
+        owner: aluno
+        group: aluno
+        mode: '0755'
