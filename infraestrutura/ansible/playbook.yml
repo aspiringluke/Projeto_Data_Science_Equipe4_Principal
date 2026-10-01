@@ -1,0 +1,74 @@
+---
+- name: Preparando ambiente para o gerador
+  hosts: Servidores
+  become: true
+
+  tasks:
+    - name: Atualizar lista de pacotes
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Instalar Python e dependencias
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - python3-venv
+        state: present
+
+    - name: Criar diretorio do projeto
+      file:
+        path: /home/aluno/projeto
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0755'
+
+    - name: Criar ambiente virtual do Python
+      command: python3 -m venv /home/aluno/projeto/venv
+      args:
+        creates: /home/aluno/projeto/venv/bin/python
+
+    - name: Instalar bibliotecas do gerador
+      pip:
+        name:
+          - babel==2.18.0
+          - Faker==40.38.0
+          - geonamescache==3.0.2
+          - pycountry==26.2.16
+          - typing_extensions==4.16.0
+        virtualenv: /home/aluno/projeto/venv
+
+    - name: Ajustar dono do ambiente virtual
+      file:
+        path: /home/aluno/projeto/venv
+        state: directory
+        owner: aluno
+        group: aluno
+        recurse: yes
+    
+    - name: Copiar gerador
+      copy:
+        src: ../../gerador/
+        dest: /home/aluno/projeto/
+        owner: aluno
+        group: aluno
+        mode: 0755
+
+    - name: Criar diretorio para os dados
+      file:
+        path: /home/aluno/projeto/gerador/output
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0755'
+    
+    - name: Criar link para o diretorio de dados
+      file:
+        src: /home/aluno/projeto/gerador/output
+        dest: /home/aluno/projeto/dados
+        state: link
+        owner: aluno
+        group: aluno
+        mode: '0755'

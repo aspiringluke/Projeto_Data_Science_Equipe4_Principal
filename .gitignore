@@ -2,7 +2,8 @@
 .terraform/
 # outros arquivos do terraform
 *terraform*
+# plano do Tofu
+tofu_plan
 
 # Arquivos de Log
 *.log
-

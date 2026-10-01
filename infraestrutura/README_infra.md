@@ -21,6 +21,9 @@ Instruções completas encontram-se no [README](/README.md#-clonando-o-repositó
 
 ### 2. Verificar dependências
 
+> [!TIP]
+> O script [install_dep.sh](./install_dep.sh) instala as dependências necessárias automaticamente, basta executar com `./install_dep.sh`. Funciona apenas em sistemas baseados em Ubuntu. Testado no Linux Mint.
+
 - OpenTofu >= 1.12.6
 - Ansible >= 2.16.x
 - Virtualização:
@@ -130,6 +133,20 @@ Note que esse comando não cria nenhuma senha para a chave.
 
 ### 5. Construir infraestrutura
 
+> [!TIP]
+> Esta etapa foi automatizada no script [build_infra.sh](./build_infra.sh)
+> Você pode executá-lo simplesmente com `./build_infra.sh`, mas o script oferece algumas opções úteis:
+> ```
+>   --rebuild,      destrói a infraestrutura e limpa as chaves antes de buildar
+>   --plan-only,    apenas faz o plano tofu e salva num arquivo, sem aplicar
+>   --help,         mostra as opções disponíveis
+>   --version,      mostra a versão
+> ```
+> Todas as opções têm versões curtas que podem ser vistas com `./build_infra.sh --help`
+
+> [!IMPORTANT]
+> O script mencionado não cria chaves SSH nem instala dependências
+
 1. Considerando que está na raiz do repositório, acesse a pasta de infra
 ```bash
 cd infraestrutura/
@@ -154,6 +171,8 @@ Por fim, verifique a conectividade ssh com a chave criada e os IPs recuperados:
 ```bash
 ssh aluno@IP -i ~/.ssh/devops_lab
 ```
+> [!WARNING]
+> As máquinas utilizam IP fixo, especificado no `inventory.ini` e no `main.tf`, portanto certifique-se de que o mesmo IP não está presente no arquivo `~/.ssh/known_hosts`, pois, se ele já estiver presente, a conexão ssh pode falhar, pois a chave de host registrada no arquivo será diferente da que foi criada pela nova VM. Remova o endereço IP dos hosts conhecidos utilizando `ssh-keygen -R 192.168.122.X`
 
 Se o seu prompt final for algo como:
 ```bash
@@ -165,49 +184,36 @@ Você se conectou com sucesso à máquina. Certifique-se de testar as duas.
 
 ### 6. Executar o Ansible
 
-1. Considerando que está na raiz do repositório, acesse a pasta do Ansible
-
+Acesse o diretório do ansible:
 ```bash
 cd infraestrutura/ansible
 ```
 
-2. Verifique a conectividade do Ansible com as máquinas virtuais
-
+Verificar conectividade das máquinas:
 ```bash
 ansible all -i inventory.ini -m ping --private-key ~/.ssh/devops_lab
 ```
 
-3. Execute o playbook
-
+Se o ping funcionar, executar playbooks
 ```bash
-ansible-playbook -i inventory.ini playbook.yml --private-key ~/.ssh/devops_lab
+ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/devops_lab
 ```
-
-O playbook realiza a preparação do ambiente das máquinas virtuais, instalando:
-
-- Python 3
-- pip
-- venv
-
-Também são criados os diretórios:
-
-- `/home/aluno/projeto`
-- `/home/aluno/projeto/dados`
-
-É criado um ambiente virtual Python em:
-
-```bash
-/home/aluno/projeto/venv
-```
-
-Dentro dele são instaladas as bibliotecas utilizadas pelo gerador:
-
-- babel
-- Faker
-- geonamescache
-- pycountry
-- typing_extensions
-
-O playbook pode ser executado novamente sem causar problemas nas configurações que já foram realizadas.
 
 ---
+
+## Reconstruindo a infraestrutura
+
+Para resetar a infraestrutura, destrua todos os objetos do tofu:
+```bash
+cd infraestrutura/iac
+tofu destroy
+```
+
+Limpe os hosts SSH conhecidos (~/.ssh/known_hosts), para evitar erros na reconexão:
+```bash
+# execute com todos os IPs atribuídos anteriormente
+ssh-keygen -R 192.168.122.10
+
+# se estiver usando DHCP e tiver hosts demais para lembrar, esse comando limpa todos os que estiverem na sub-rede do libvirt
+for i in {1..255}; do ssh-keygen -R 192.168.122.${i}; done
+```
