@@ -108,33 +108,27 @@ fi
 cd iac
 
 if [[ ! -f "cloud_init.cfg" || ! -f "main.tf" ]]; then
-    msg "${error_color}ERROR${default_color}: Os arquivos necessários para executar a infraestrutura não foram encontrados neste diretório. Abortando"
+    msg "${error_color}ERROR: Os arquivos necessários para executar a infraestrutura não foram encontrados neste diretório. Abortando${default_color}"
     exit 1
 fi
 
 msg "Baixando providers"
 tofu init
-msg "${ok_color}OK${default_color}: Providers baixados"
+msg "${ok_color}OK: Providers baixados${default_color}"
 
 msg "Validando..."
 tofu validate
-[[ $? -ne 0 ]] && msg "${error_color}ERROR${default_color}: Validação falhou" && exit 1
+[[ $? -ne 0 ]] && msg "${error_color}ERROR: Validação falhou${default_color}" && exit 1
 
 msg "Planejando..."
 tofu plan -out=tofu_plan
-[[ $? -ne 0 ]] && msg "${error_color}ERROR${default_color}: Planejamento falhou" && exit 1
-msg "${ok_color}OK${default_color}: Planejamento feito"
+[[ $? -ne 0 ]] && msg "${error_color}ERROR: Planejamento falhou${default_color}" && exit 1
+msg "${ok_color}OK: Planejamento feito${default_color}"
 
 if [[ PLAN_ONLY -ne 1 ]]; then
     msg "Aplicando o plano..."
     tofu apply tofu_plan
-    [[ $? -ne 0 ]] && msg "${error_color}ERROR${default_color}: Algo deu errado" && exit 1
-    msg "${ok_color}SUCCESS${default_color}: Infraestrutura construída."
-    msg "Teste o acesso com: ssh aluno@192.168.122.X -i ~/.ssh/chave_ssh"
-    
-    # NÃO FUNCIONA
-    # tme que habilitar manualmente
-    # cd ../ansible
-    # echo yes | ssh aluno@192.168.122.10
-    # ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/devops_lab
+    [[ $? -ne 0 ]] && msg "${error_color}ERROR: Algo deu errado${default_color}" && exit 1
+    msg "${ok_color}SUCCESS: Infraestrutura construída.${default_color}"
+    msg "Teste o acesso com: ssh aluno@192.168.122.X -i ~/.ssh/devops_lab"
 fi
