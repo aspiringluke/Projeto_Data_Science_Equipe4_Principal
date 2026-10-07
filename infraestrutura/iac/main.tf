@@ -30,8 +30,9 @@ resource "libvirt_volume" "vm_disk" {
   name   = "devops_${count.index + 1}.qcow2"
   pool   = "default"
   format = "qcow2"
-  size = 21474836480 # 20GB
-  # size = 32212254720 # 30GB
+  size = 10737418240    # 10GB
+  # size = 21474836480  # 20GB
+  # size = 32212254720  # 30GB
 
   base_volume_id = libvirt_volume.ubuntu_base.id
 }
@@ -39,7 +40,7 @@ resource "libvirt_volume" "vm_disk" {
 resource "libvirt_cloudinit_disk" "init" {
   count = local.vm_count
 
-  name = "devop_${count.index + 1}-cloudinit.iso"
+  name = "devops_${count.index + 1}-cloudinit.iso"
   pool = "default"
 
   user_data = templatefile("${path.module}/cloud_init.cfg", {
