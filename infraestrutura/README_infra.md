@@ -171,6 +171,8 @@ Por fim, verifique a conectividade ssh com a chave criada e os IPs recuperados:
 ```bash
 ssh aluno@IP -i ~/.ssh/devops_lab
 ```
+> [!WARNING]
+> As máquinas utilizam IP fixo, especificado no `inventory.ini` e no `main.tf`, portanto certifique-se de que o mesmo IP não está presente no arquivo `~/.ssh/known_hosts`, pois, se ele já estiver presente, a conexão ssh pode falhar, pois a chave de host registrada no arquivo será diferente da que foi criada pela nova VM. Remova o endereço IP dos hosts conhecidos utilizando `ssh-keygen -R 192.168.122.X`
 
 Se o seu prompt final for algo como:
 ```bash
