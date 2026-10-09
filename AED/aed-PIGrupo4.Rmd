@@ -1,0 +1,160 @@
+---
+title: "AED — Projeto Telemetria de Jogos Digitais"
+output: 
+  pdf_document: default
+---
+
+# Projeto Integrado — Telemetria de Jogos Digitais
+
+## 👥 Integrantes do grupo 4:
+
+- Gabriel da Silva Freitas
+- José Carlos Pereira Neto
+- Lucas Paulino Gomes
+- Luís Miguel Vitor
+- Maria Luiza Tavares Procópio
+- Thierry Antonello Pengo
+
+------------------------------------------------------------------------
+
+## 🔍 Análise Exploratória de Dados
+
+Esse documento tem como principal objetivo relatar os passos tomados para ler, analisar, processar e visualizar o dataset gerado para o projeto integrado da equipe 4 sobre pipeline de dados de telemetria de jogos digitais em parceria com a **MIMA Games & Design LTDA**.
+
+------------------------------------------------------------------------
+
+## 📚 Sumário
+
+- [Etapa 1 - Importação do Dataset](#etapa-1---importação-do-dataset)
+- [Etapa 2 - Análise Inicial](#etapa-2---análise-inicial)
+- [Etapa 3 - Investigando Dados Sujos](#etapa-3---investigando-dados-sujos)
+- [Etapa 4 - Transformação dos dados sujos](#etapa-4---transformação-dos-dados-sujos)
+- [Etapa 5 - Geração dos gráficos](#etapa-5---geração-dos-gráficos)
+- [Considerações Finais](#considerações-finais)
+
+------------------------------------------------------------------------
+
+## Etapa 1 - Importação do Dataset {#etapa-1---importação-do-dataset}
+
+À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
+
+```{r}
+compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/compras_20261006_185454_833908.csv')
+itens = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_20261006_185507_989772.csv')
+itens_compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_compra_20261006_185507_991205.csv')
+jogadores = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/jogadores_10000_20261006_185423_273011.csv')
+partidas = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/partidas_20261006_185430_644338.csv')
+sessoes = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/sessoes_20261006_185423_866959.csv')
+```
+
+------------------------------------------------------------------------
+
+## Etapa 2 - Análise Inicial {#etapa-2---análise-inicial}
+
+Para a etapa 2 dessa análise, foram utilizadas algumas funções para realizar uma exploração inicial dos datasets do nosso projeto.
+
+Ao utilizar a função `head()`, podemos analisar as seis primeiras observações de cada dataFrame gerado, a fim de ter uma noção básica das variáveis e suas respectivas observações. À princípio
+
+```{r}
+# head
+head(compras)
+head(itens)
+head(itens_compras)
+head(jogadores)
+head(partidas)
+head(sessoes)
+```
+
+```{r}
+# names
+cat('Compras:\n')
+names(compras)
+cat('\n')
+
+cat('Itens:\n')
+names(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+names(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+names(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+names(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+names(sessoes)
+```
+
+```{r}
+# structure
+cat('Compras:\n')
+str(compras)
+cat('\n')
+
+cat('Itens:\n')
+str(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+str(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+str(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+str(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+str(sessoes)
+```
+
+```{r}
+# Summary
+cat('Compras:\n')
+summary(compras)
+cat('\n')
+
+cat('Itens:\n')
+summary(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+summary(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+summary(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+summary(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+summary(sessoes)
+```
+
+------------------------------------------------------------------------
+
+## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
+
+------------------------------------------------------------------------
+
+## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
+
+------------------------------------------------------------------------
+
+## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
+
+------------------------------------------------------------------------
+
+## Considerações Finais {#considerações-finais}
