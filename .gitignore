@@ -7,3 +7,9 @@ tofu_plan
 
 # Arquivos de Log
 *.log
+
+# Arquivos do RStudio
+.RData
+.Rhistory
+*.Rproj
+*.nb.html
