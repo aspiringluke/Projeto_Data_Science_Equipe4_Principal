@@ -147,6 +147,88 @@ summary(sessoes)
 
 ## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
 
+Primeiramente será instalado e carregado o pacote 'dplyr' que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+
+```{r}
+install.packages("dplyr")
+library("dplyr")
+```
+
+Serão contabilizados a quantidade de observações vazias em cada dataset (Nesse caso, são observações das colunas que são "" e não NA)
+
+Será contabilizado também a média de observações vazias
+
+```{r}
+cat("Valores ausentes — Compras:\n")
+sum(compras == "")
+cat('\n')
+
+cat("Valores ausentes — Itens:\n")
+sum(itens == "")
+cat('\n')
+
+cat("Valores ausentes — Itens_Compras:\n")
+sum(itens_compras == "")
+cat('\n')
+
+cat("Valores ausentes — Jogadores:\n")
+sum(jogadores == "")
+cat('\n')
+
+cat("Valores ausentes — Partidas:\n")
+sum(partidas == "")
+cat('\n')
+
+cat("Valores ausentes — Sessões:\n")
+sum(sessoes == "")
+cat('\n')
+
+cat("Média geral de Valores ausentes:\n")
+soma_vazios = c(
+  sum(compras == ""),
+  sum(itens == ""),
+  sum(itens_compras == ""),
+  sum(jogadores == ""),
+  sum(partidas == ""),
+  sum(sessoes == "")
+)
+media_vazios = mean(soma_vazios)
+media_vazios
+```
+
+É possível observar as seguintes situações:
+
+- Partidas é o dataset que possui o maior número de valores ausentes (30.255)
+- Itens_Compras é o dataset que possui o menor número de valores ausentes (0) — todos os valores desse dataset possuem dados com alguma coisa registrada
+- A média geral dos valores ausentes foi contabilizada em 8.478 observações. Isso mostra que 4 dos 6 datasets estão abaixo da média indicando uma proporção pequena de dados ausentes em geral
+
+Serão contabilizados a quantidade de observações NA em cada dataset
+
+```{r}
+cat("Valores NA — Compras:\n")
+sum(is.na(compras))
+cat('\n')
+
+cat("Valores NA — Itens:\n")
+sum(is.na(itens))
+cat('\n')
+
+cat("Valores NA — Itens_Compras:\n")
+sum(is.na(itens_compras))
+cat('\n')
+
+cat("Valores NA — Jogadores:\n")
+sum(is.na(jogadores))
+cat('\n')
+
+cat("Valores NA — Partidas:\n")
+sum(is.na(partidas))
+cat('\n')
+
+cat("Valores NA — Sessões:\n")
+sum(is.na(sessoes))
+```
+
 ------------------------------------------------------------------------
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
