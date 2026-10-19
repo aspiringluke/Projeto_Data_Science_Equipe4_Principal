@@ -302,6 +302,30 @@ View(sessoes_limpas)
 sum(is.na(sessoes_limpas))
 ```
 
+- transformar tipo de data errado em POSIXct e date
+
+```{r}
+compras_limpas$data_compra <- ymd_hms(compras_limpas$data_compra)
+str(compras_limpas)
+```
+
+```{r}
+jogadores_limpos$data_nascimento    <- ymd(jogadores_limpos$data_nascimento)
+jogadores_limpos$data_criacao_conta <- ymd(jogadores_limpos$data_criacao_conta)
+str(jogadores_limpos)
+```
+
+```{r}
+partida_limpas$data_inicio_partida <- ymd_hms(partida_limpas$data_inicio_partida)
+partida_limpas$data_fim_partida <-ymd_hms(partida_limpas$data_fim_partida)
+str(partida_limpas)
+```
+
+```{r}
+sessoes_limpas$data_inicio_sessao <- ymd_hms(sessoes_limpas$data_inicio_sessao)
+sessoes_limpas$data_fim_sessao <- ymd_hms(sessoes_limpas$data_fim_sessao)
+str(sessoes_limpas)
+```
 ------------------------------------------------------------------------
 
 ## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
