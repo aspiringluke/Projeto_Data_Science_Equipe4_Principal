@@ -233,6 +233,75 @@ sum(is.na(sessoes))
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
 
+- transforma os valores ausentes em NA
+
+```{r}
+compras_limpas <- compras
+
+compras_limpas[compras_limpas == "" |
+               compras_limpas == "NA" |
+               compras_limpas == "NULL"] <- NA
+
+View(compras_limpas)
+sum(is.na(compras_limpas))
+```
+
+
+```{r}
+itens_limpos <- itens
+
+itens_limpos[itens_limpos == "" |
+               itens_limpos == "NA" |
+               itens_limpos == "NULL"] <- NA
+
+View(itens_limpos)
+sum(is.na(itens_limpos))
+```
+
+```{r}
+itens_compras_limpos <- itens_compras
+
+itens_compras_limpos[itens_compras_limpos == "" |
+               itens_compras_limpos == "NA" |
+               itens_compras_limpos == "NULL"] <- NA
+
+View(itens_compras_limpos)
+sum(is.na(itens_compras_limpos))
+```
+
+```{r}
+Jogadores_limpos <- jogadores
+
+Jogadores_limpos[Jogadores_limpos == "" |
+               Jogadores_limpos == "NA" |
+               Jogadores_limpos == "NULL"] <- NA
+
+View(Jogadores_limpos)
+sum(is.na(Jogadores_limpos))
+```
+
+```{r}
+partida_limpas <- partidas
+
+partida_limpas[partida_limpas == "" |
+               partida_limpas == "NA" |
+               partida_limpas == "NULL"] <- NA
+
+View(partida_limpas)
+sum(is.na(partida_limpas))
+```
+
+```{r}
+sessoes_limpas <- sessoes
+
+sessoes_limpas[sessoes_limpas == "" |
+               sessoes_limpas == "NA" |
+               sessoes_limpas == "NULL"] <- NA
+
+View(sessoes_limpas)
+sum(is.na(sessoes_limpas))
+```
+
 ------------------------------------------------------------------------
 
 ## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
