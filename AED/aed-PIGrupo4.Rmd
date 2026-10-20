@@ -248,24 +248,24 @@ limpa_nulos <- function(df) {
   return(df)
 }
 
-compras_nulos       <- limpa_nulos(compras)
-itens_nulos         <- limpa_nulos(itens)
-itens_compras_nulos <- limpa_nulos(itens_compras)
-jogadores_nulos     <- limpa_nulos(jogadores)
-partidas_nulos      <- limpa_nulos(partidas)
-sessoes_nulos       <- limpa_nulos(sessoes)
+compras_nulos       = limpa_nulos(compras)
+itens_nulos         = limpa_nulos(itens)
+itens_compras_nulos = limpa_nulos(itens_compras)
+jogadores_nulos     = limpa_nulos(jogadores)
+partidas_nulos      = limpa_nulos(partidas)
+sessoes_nulos       = limpa_nulos(sessoes)
 
 
 ```
 - Remove duplicidades
 
 ```{r}
-compras_limpas       <- compras_nulos       %>% distinct()
-itens_limpos         <- itens_nulos         %>% distinct()
-itens_compras_limpos <- itens_compras_nulos %>% distinct()
-jogadores_limpos     <- jogadores_nulos     %>% distinct()
-partidas_limpas      <- partidas_nulos      %>% distinct()
-sessoes_limpas       <- sessoes_nulos       %>% distinct()
+compras_limpas       = compras_nulos       %>% distinct()
+itens_limpos         = itens_nulos         %>% distinct()
+itens_compras_limpos = itens_compras_nulos %>% distinct()
+jogadores_limpos     = jogadores_nulos     %>% distinct()
+partidas_limpas      = partidas_nulos      %>% distinct()
+sessoes_limpas       = sessoes_nulos       %>% distinct()
 
 cat("Duplicatas removidas:\n")
 print(c(compras       = nrow(compras)       - nrow(compras_limpas),
@@ -275,29 +275,75 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         partidas      = nrow(partidas)      - nrow(partidas_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 ```
-- Padronização de datas inconsistentes em formato POSIXct
+- padronizando as datas e seu tipo em POSIXct
 
 ```{r}
-compras_limpas$data_compra = ymd_hms(compras_limpas$data_compra)
-str(compras_limpas)
+candidatas = function(x, hora = FALSE, tz = "UTC") {
+  x = str_squish(x)
+  f = if (hora) " HMS" else ""
+  ler = function(padrao, ordem) {
+    v = ifelse(grepl(padrao, x), x, NA)
+    out = suppressWarnings(parse_date_time(v, paste0(ordem, f), tz = tz, quiet = TRUE))
+    if (hora) out else as.Date(out)
+  }
+  list(iso = ler("^[0-9]{4}-[0-9]{2}-[0-9]{2}", "Ymd"),
+       dmy = ler("^[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}", "dmY"),
+       mdy = ler("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}", "mdY"))
+}
+
+resolve_data = function(cand, erro_dmy = NULL, erro_mdy = NULL) {
+  n = length(cand\$iso)
+  if (is.null(erro_dmy)) erro_dmy = rep(NA_real_, n)
+  if (is.null(erro_mdy)) erro_mdy = rep(NA_real_, n)
+
+  ambigua = is.na(cand\$iso) & !is.na(cand\(dmy) & !is.na(cand\)mdy) & cand\(dmy != cand\)mdy
+  sem_ref = ambigua & (is.na(erro_dmy) | is.na(erro_mdy))
+  cat("Datas ambíguas (dd/mm x mm/dd):", sum(ambigua, na.rm = TRUE),
+      "| sem referência (assumido dd/mm):", sum(sem_ref, na.rm = TRUE), "\n")
+
+  mdy_melhor = (erro_mdy < erro_dmy) %in% TRUE
+  usa_mdy = !is.na(cand\(mdy) & (is.na(cand\)dmy) | mdy_melhor)
+  coalesce(cand\$iso, if_else(usa_mdy, cand\(mdy, cand\)dmy))
+}
+
+dif_min  = function(a, b) abs(as.numeric(difftime(a, b, units = "mins")))
 ```
 
 ```{r}
-jogadores_limpos$data_nascimento    = ymd(jogadores_limpos$data_nascimento)
-jogadores_limpos$data_criacao_conta = ymd(jogadores_limpos$data_criacao_conta)
-str(jogadores_limpos)
-```
+# --- COMPRAS ---
+cand_compra = candidatas(compras_limpas\$data_compra, hora = TRUE)
+compras_limpas = compras_limpas %>%
+  mutate(data_compra = resolve_data(cand_compra))
 
-```{r}
-partida_limpas$data_inicio_partida = ymd_hms(partida_limpas$data_inicio_partida)
-partida_limpas$data_fim_partida = ymd_hms(partida_limpas$data_fim_partida)
-str(partida_limpas)
-```
+# --- JOGADORES ---
+cand_nasc = candidatas(jogadores_limpos\$data_nascimento, hora = FALSE)
+cand_criacao = candidatas(jogadores_limpos\$data_criacao_conta, hora = FALSE)
 
-```{r}
-sessoes_limpas$data_inicio_sessao = ymd_hms(sessoes_limpas$data_inicio_sessao)
-sessoes_limpas$data_fim_sessao = ymd_hms(sessoes_limpas$data_fim_sessao)
-str(sessoes_limpas)
+jogadores_limpos = jogadores_limpos %>%
+  mutate(data_nascimento = resolve_data(cand_nasc),
+         data_criacao_conta = resolve_data(cand_criacao))
+
+# --- PARTIDAS ---
+cand_ini_partida = candidatas(partidas_limpas\$data_inicio_partida, hora = TRUE)
+cand_fim_partida = candidatas(partidas_limpas\$data_fim_partida, hora = TRUE)
+
+erro_dmy_partida = dif_min(cand_ini_partida\(dmy, cand_fim_partida\)dmy)
+erro_mdy_partida = dif_min(cand_ini_partida\(mdy, cand_fim_partida\)mdy)
+
+partidas_limpas = partidas_limpas %>%
+  mutate(data_inicio_partida = resolve_data(cand_ini_partida, erro_dmy_partida, erro_mdy_partida),
+         data_fim_partida    = resolve_data(cand_fim_partida, erro_dmy_partida, erro_mdy_partida))
+
+# --- SESSOES ---
+cand_ini_sessao = candidatas(sessoes_limpas\$data_inicio_sessao, hora = TRUE)
+cand_fim_sessao = candidatas(sessoes_limpas\$data_fim_sessao, hora = TRUE)
+
+erro_dmy_sessao = dif_min(cand_ini_sessao\(dmy, cand_fim_sessao\)dmy)
+erro_mdy_sessao = dif_min(cand_ini_sessao\(mdy, cand_fim_sessao\)mdy)
+
+sessoes_limpas = sessoes_limpas %>%
+  mutate(data_inicio_sessao = resolve_data(cand_ini_sessao, erro_dmy_sessao, erro_mdy_sessao),
+         data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
 ```
 
 ------------------------------------------------------------------------
