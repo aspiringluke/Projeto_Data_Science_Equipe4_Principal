@@ -236,99 +236,99 @@ sum(is.na(sessoes))
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
 
-- transforma os valores ausentes em NA
+- Padronização das diferentes formas de valores ausentes em NA
 
 ```{r}
-compras_limpas <- compras
+compras_limpas = compras
 
 compras_limpas[compras_limpas == "" |
                compras_limpas == "NA" |
-               compras_limpas == "NULL"] <- NA
+               compras_limpas == "NULL"] = NA
 
 View(compras_limpas)
 sum(is.na(compras_limpas))
 ```
 
-
 ```{r}
-itens_limpos <- itens
+itens_limpos = itens
 
 itens_limpos[itens_limpos == "" |
                itens_limpos == "NA" |
-               itens_limpos == "NULL"] <- NA
+               itens_limpos == "NULL"] = NA
 
 View(itens_limpos)
 sum(is.na(itens_limpos))
 ```
 
 ```{r}
-itens_compras_limpos <- itens_compras
+itens_compras_limpos = itens_compras
 
 itens_compras_limpos[itens_compras_limpos == "" |
                itens_compras_limpos == "NA" |
-               itens_compras_limpos == "NULL"] <- NA
+               itens_compras_limpos == "NULL"] = NA
 
 View(itens_compras_limpos)
 sum(is.na(itens_compras_limpos))
 ```
 
 ```{r}
-Jogadores_limpos <- jogadores
+jogadores_limpos = jogadores
 
-Jogadores_limpos[Jogadores_limpos == "" |
-               Jogadores_limpos == "NA" |
-               Jogadores_limpos == "NULL"] <- NA
+jogadores_limpos[jogadores_limpos == "" |
+               jogadores_limpos == "NA" |
+               jogadores_limpos == "NULL"] = NA
 
-View(Jogadores_limpos)
-sum(is.na(Jogadores_limpos))
+View(jogadores_limpos)
+sum(is.na(jogadores_limpos))
 ```
 
 ```{r}
-partida_limpas <- partidas
+partida_limpas = partidas
 
 partida_limpas[partida_limpas == "" |
                partida_limpas == "NA" |
-               partida_limpas == "NULL"] <- NA
+               partida_limpas == "NULL"] = NA
 
 View(partida_limpas)
 sum(is.na(partida_limpas))
 ```
 
 ```{r}
-sessoes_limpas <- sessoes
+sessoes_limpas = sessoes
 
 sessoes_limpas[sessoes_limpas == "" |
                sessoes_limpas == "NA" |
-               sessoes_limpas == "NULL"] <- NA
+               sessoes_limpas == "NULL"] = NA
 
 View(sessoes_limpas)
 sum(is.na(sessoes_limpas))
 ```
 
-- transformar tipo de data errado em POSIXct e date
+- Padronização de datas inconsistentes em formato POSIXct
 
 ```{r}
-compras_limpas$data_compra <- ymd_hms(compras_limpas$data_compra)
+compras_limpas$data_compra = ymd_hms(compras_limpas$data_compra)
 str(compras_limpas)
 ```
 
 ```{r}
-jogadores_limpos$data_nascimento    <- ymd(jogadores_limpos$data_nascimento)
-jogadores_limpos$data_criacao_conta <- ymd(jogadores_limpos$data_criacao_conta)
+jogadores_limpos$data_nascimento    = ymd(jogadores_limpos$data_nascimento)
+jogadores_limpos$data_criacao_conta = ymd(jogadores_limpos$data_criacao_conta)
 str(jogadores_limpos)
 ```
 
 ```{r}
-partida_limpas$data_inicio_partida <- ymd_hms(partida_limpas$data_inicio_partida)
-partida_limpas$data_fim_partida <-ymd_hms(partida_limpas$data_fim_partida)
+partida_limpas$data_inicio_partida = ymd_hms(partida_limpas$data_inicio_partida)
+partida_limpas$data_fim_partida = ymd_hms(partida_limpas$data_fim_partida)
 str(partida_limpas)
 ```
 
 ```{r}
-sessoes_limpas$data_inicio_sessao <- ymd_hms(sessoes_limpas$data_inicio_sessao)
-sessoes_limpas$data_fim_sessao <- ymd_hms(sessoes_limpas$data_fim_sessao)
+sessoes_limpas$data_inicio_sessao = ymd_hms(sessoes_limpas$data_inicio_sessao)
+sessoes_limpas$data_fim_sessao = ymd_hms(sessoes_limpas$data_fim_sessao)
 str(sessoes_limpas)
 ```
+
 ------------------------------------------------------------------------
 
 ## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
