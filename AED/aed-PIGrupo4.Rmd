@@ -257,7 +257,24 @@ sessoes_nulos       <- limpa_nulos(sessoes)
 
 
 ```
+- Remove duplicidades
 
+```{r}
+compras_limpas       <- compras_nulos       %>% distinct()
+itens_limpos         <- itens_nulos         %>% distinct()
+itens_compras_limpos <- itens_compras_nulos %>% distinct()
+jogadores_limpos     <- jogadores_nulos     %>% distinct()
+partidas_limpas      <- partidas_nulos      %>% distinct()
+sessoes_limpas       <- sessoes_nulos       %>% distinct()
+
+cat("Duplicatas removidas:\n")
+print(c(compras       = nrow(compras)       - nrow(compras_limpas),
+        itens         = nrow(itens)         - nrow(itens_limpos),
+        itens_compras = nrow(itens_compras) - nrow(itens_compras_limpos),
+        jogadores     = nrow(jogadores)     - nrow(jogadores_limpos),
+        partidas      = nrow(partidas)      - nrow(partidas_limpas),
+        sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
+```
 - Padronização de datas inconsistentes em formato POSIXct
 
 ```{r}
