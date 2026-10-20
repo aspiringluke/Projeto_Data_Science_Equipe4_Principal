@@ -238,70 +238,24 @@ sum(is.na(sessoes))
 
 - Padronização das diferentes formas de valores ausentes em NA
 
-```{r}
-compras_limpas = compras
-
-compras_limpas[compras_limpas == "" |
-               compras_limpas == "NA" |
-               compras_limpas == "NULL"] = NA
-
-View(compras_limpas)
-sum(is.na(compras_limpas))
-```
 
 ```{r}
-itens_limpos = itens
+limpa_nulos <- function(df) {
+  df[] <- lapply(df, function(x) {
+    x[x == "" | x == "NA" | x == "NULL"] <- NA
+    return(x)
+  })
+  return(df)
+}
 
-itens_limpos[itens_limpos == "" |
-               itens_limpos == "NA" |
-               itens_limpos == "NULL"] = NA
+compras_nulos       <- limpa_nulos(compras)
+itens_nulos         <- limpa_nulos(itens)
+itens_compras_nulos <- limpa_nulos(itens_compras)
+jogadores_nulos     <- limpa_nulos(jogadores)
+partidas_nulos      <- limpa_nulos(partidas)
+sessoes_nulos       <- limpa_nulos(sessoes)
 
-View(itens_limpos)
-sum(is.na(itens_limpos))
-```
 
-```{r}
-itens_compras_limpos = itens_compras
-
-itens_compras_limpos[itens_compras_limpos == "" |
-               itens_compras_limpos == "NA" |
-               itens_compras_limpos == "NULL"] = NA
-
-View(itens_compras_limpos)
-sum(is.na(itens_compras_limpos))
-```
-
-```{r}
-jogadores_limpos = jogadores
-
-jogadores_limpos[jogadores_limpos == "" |
-               jogadores_limpos == "NA" |
-               jogadores_limpos == "NULL"] = NA
-
-View(jogadores_limpos)
-sum(is.na(jogadores_limpos))
-```
-
-```{r}
-partida_limpas = partidas
-
-partida_limpas[partida_limpas == "" |
-               partida_limpas == "NA" |
-               partida_limpas == "NULL"] = NA
-
-View(partida_limpas)
-sum(is.na(partida_limpas))
-```
-
-```{r}
-sessoes_limpas = sessoes
-
-sessoes_limpas[sessoes_limpas == "" |
-               sessoes_limpas == "NA" |
-               sessoes_limpas == "NULL"] = NA
-
-View(sessoes_limpas)
-sum(is.na(sessoes_limpas))
 ```
 
 - Padronização de datas inconsistentes em formato POSIXct
