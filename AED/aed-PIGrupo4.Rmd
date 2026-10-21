@@ -240,9 +240,9 @@ sum(is.na(sessoes))
 
 
 ```{r}
-limpa_nulos <- function(df) {
-  df[] <- lapply(df, function(x) {
-    x[x == "" | x == "NA" | x == "NULL"] <- NA
+limpa_nulos = function(df) {
+  df[] = lapply(df, function(x) {
+    x[x == "" | x == "NA" | x == "NULL"] = NA
     return(x)
   })
   return(df)
