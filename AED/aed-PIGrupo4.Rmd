@@ -152,9 +152,14 @@ Primeiramente será instalado e carregado o pacote 'dplyr' que nos permitirá ac
 ```{r}
 install.packages("dplyr")
 install.packages("lubridate")
+install.packages("stringr")
+install.packages("stringi")
+
 
 library(dplyr)
 library(lubridate)
+library(stringr)
+library(stringi)
 ```
 
 Serão contabilizados a quantidade de observações vazias em cada dataset (Nesse caso, são observações das colunas que são "" e não NA)
