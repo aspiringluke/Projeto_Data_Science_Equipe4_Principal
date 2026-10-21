@@ -374,6 +374,73 @@ converter_numero <- function(x) {
 }
 ```
 
+- padronização de texto e numeros
+
+```{r}
+generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
+                          "Esportes", "MOBA", "Simulação", "Luta", "Survival")
+plataformas_validas  = c("PC", "PlayStation", "Xbox", "Mobile")
+
+sessoes_limpas = sessoes_limpas %>%
+  mutate(
+    plataforma  = padronizar_categoria(plataforma, plataformas_validas, "sessoes$plataforma"),
+    genero_jogo = padronizar_categoria(genero_jogo, generos_jogo_validos, "sessoes$genero_jogo")
+  )
+```
+
+
+```{r}
+resultados_validos = c("Vitória", "Derrota", "Empate")
+
+partidas_limpas = partidas_limpas %>%
+  mutate(resultado = padronizar_categoria(resultado, resultados_validos, "partidas$resultado"))
+```
+
+```{r}
+categorias_validas = c("Skin", "Passe de batalha", "Moeda virtual", "Personagem", "Cosmético",
+                        "DLC", "Boost", "Pacote", "Emote", "Acessório")
+raridades_validas  = c("Comum", "Incomum", "Rara", "Épica", "Lendária")
+
+nomes_validos = c(
+  "Skin Dragão", "Skin Tempestade", "Skin Neon", "Skin Sombria", "Skin Vulcânica", "Skin Glacial",
+  "Passe de Batalha Bronze", "Passe de Batalha Prata", "Passe de Batalha Ouro",
+  "100 Moedas", "500 Moedas", "1000 Moedas", "2500 Moedas",
+  "Personagem Guerreiro", "Personagem Mago", "Personagem Caçador", "Personagem Assassino",
+  "Roupa Especial", "Capacete Especial", "Efeito Visual", "Pintura Especial",
+  "Expansão Norte", "Expansão Sombria", "Expansão Final",
+  "Boost de XP", "Boost de Moedas", "Boost de Progressão",
+  "Pacote Inicial", "Pacote Premium", "Pacote Lendário",
+  "Emote Dança", "Emote Vitória", "Emote Provocação",
+  "Mochila Especial", "Pingente", "Bandeira", "Insígnia"
+)
+
+itens_limpos = itens_limpos %>%
+  mutate(
+    nome_item      = padronizar_categoria(nome_item, nomes_validos, "itens$nome_item"),
+    categoria_item = padronizar_categoria(categoria_item, categorias_validas, "itens$categoria_item"),
+    raridade       = padronizar_categoria(raridade, raridades_validas, "itens$raridade"),
+    preco_base     = converter_numero(preco_base),
+    
+    # Preenche raridade ausente apenas quando o preço é inequívoco
+    raridade = coalesce(raridade, case_when(
+      near(preco_base, 4.90)  ~ "Comum",
+      near(preco_base, 14.90) ~ "Incomum",
+      near(preco_base, 24.90) ~ "Rara",
+      near(preco_base, 39.90) ~ "Épica",
+      near(preco_base, 59.90) ~ "Lendária",
+      near(preco_base, 79.90) ~ "Lendária",
+      TRUE ~ NA_character_
+    ))
+  )
+```
+
+
+```{r}
+itens_compras_limpos = itens_compras_limpos %>%
+  mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
+```
+
+
 ------------------------------------------------------------------------
 
 ## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
