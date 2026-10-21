@@ -351,6 +351,29 @@ sessoes_limpas = sessoes_limpas %>%
          data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
 ```
 
+
+- função que padroniza testos e numeros 
+
+```{r}
+chave_texto <- function(x) {
+  x %>% as.character() %>% str_squish() %>% stri_trans_general("Latin-ASCII") %>% str_to_lower()
+}
+
+padronizar_categoria <- function(x, validos, nome = "coluna") {
+  idx <- match(chave_texto(x), chave_texto(validos))
+  out <- ifelse(is.na(idx), str_squish(as.character(x)), validos[idx])
+  fora_da_lista <- unique(out[is.na(idx) & !is.na(x)])
+  if (length(fora_da_lista) > 0) {
+    cat("Atenção -", nome, "- valores fora da lista:", paste(fora_da_lista, collapse = ", "), "\n")
+  }
+  out
+}
+
+converter_numero <- function(x) {
+  as.numeric(str_replace(str_squish(as.character(x)), ",", "."))
+}
+```
+
 ------------------------------------------------------------------------
 
 ## Etapa 5 - Geração dos Gráficos {#etapa-5---geração-dos-gráficos}
