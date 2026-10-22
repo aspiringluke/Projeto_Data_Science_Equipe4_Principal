@@ -243,6 +243,9 @@ sum(is.na(sessoes))
 
 - Padronização das diferentes formas de valores ausentes em NA
 
+- A função `limpa_nulos()` precisa ser executada antes de serem executadas as funções posteriores, pois elas irão utilizar 
+os dados nulos padronizados para fazer as limpezas posteriores
+
 
 ```{r}
 limpa_nulos = function(df) {
@@ -262,7 +265,9 @@ sessoes_nulos       = limpa_nulos(sessoes)
 
 
 ```
-- Remove duplicidades
+- Remoção de valores duplicidados
+
+-  A função `distinct()` retorna apenas valores únicos, fazendo com que haja apenas obseravções únicas para cada dataset
 
 ```{r}
 compras_limpas       = compras_nulos       %>% distinct()
@@ -280,7 +285,9 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         partidas      = nrow(partidas)      - nrow(partidas_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 ```
-- padronizando as datas e seu tipo em POSIXct
+- Padronizando as datas e seu tipo em POSIXct
+
+- O formato POSIXct salva cada valor de forma compacta em um único número inteiro ou decimal, ideal para dataframes
 
 ```{r}
 candidatas = function(x, hora = FALSE, tz = "UTC") {
@@ -352,14 +359,14 @@ sessoes_limpas = sessoes_limpas %>%
 ```
 
 
-- função que padroniza testos e numeros 
+- Função que padroniza textos e numeros 
 
 ```{r}
-chave_texto <- function(x) {
+chave_texto = function(x) {
   x %>% as.character() %>% str_squish() %>% stri_trans_general("Latin-ASCII") %>% str_to_lower()
 }
 
-padronizar_categoria <- function(x, validos, nome = "coluna") {
+padronizar_categoria = function(x, validos, nome = "coluna") {
   idx <- match(chave_texto(x), chave_texto(validos))
   out <- ifelse(is.na(idx), str_squish(as.character(x)), validos[idx])
   fora_da_lista <- unique(out[is.na(idx) & !is.na(x)])
@@ -369,7 +376,7 @@ padronizar_categoria <- function(x, validos, nome = "coluna") {
   out
 }
 
-converter_numero <- function(x) {
+converter_numero = function(x) {
   as.numeric(str_replace(str_squish(as.character(x)), ",", "."))
 }
 ```
