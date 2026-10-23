@@ -41,8 +41,7 @@ Esse documento tem como principal objetivo relatar os passos tomados para ler, a
 
 Será instalado e carregado o pacote 'dplyr' que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
 
-Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já
-as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
+Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
 
 ```{r}
 install.packages("dplyr")
@@ -57,12 +56,12 @@ library(lubridate)
 library(stringr)
 library(stringi)
 
-compras = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/compras_20261021_195615_358020.csv')
-itens = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/itens_20261021_195620_141273.csv')
-itens_compras = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/itens_compra_20261021_195620_141517.csv')
-jogadores = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/jogadores_10000_20261021_195603_811815.csv')
-partidas = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/partidas_20261021_195606_660869.csv')
-sessoes = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/sessoes_20261021_195604_041416.csv')
+compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/compras_20261006_185454_833908.csv')
+itens = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_20261006_185507_989772.csv')
+itens_compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_compra_20261006_185507_991205.csv')
+jogadores = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/jogadores_10000_20261006_185423_273011.csv')
+partidas = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/partidas_20261006_185430_644338.csv')
+sessoes = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/sessoes_20261006_185423_866959.csv')
 ```
 
 ------------------------------------------------------------------------
@@ -246,9 +245,7 @@ sum(is.na(sessoes))
 
 - Padronização das diferentes formas de valores ausentes em NA
 
-- A função `limpa_nulos()` precisa ser executada antes de serem executadas as funções posteriores, pois elas irão utilizar 
-os dados nulos padronizados para fazer as limpezas posteriores
-
+- A função `limpa_nulos()` precisa ser executada antes de serem executadas as funções posteriores, pois elas irão utilizar os dados nulos padronizados para fazer as limpezas posteriores
 
 ```{r}
 limpa_nulos = function(df) {
@@ -268,12 +265,12 @@ sessoes_nulos       = limpa_nulos(sessoes)
 
 
 ```
+
 - Remoção de valores duplicidados
 
--  A função `distinct()` retorna apenas valores únicos, fazendo com que haja apenas obseravções únicas para cada dataset
+- A função `distinct()` retorna apenas valores únicos, fazendo com que haja apenas obseravções únicas para cada dataset
 
-- Para fins de análise, foram contabilizados a quantidade de observações duplicadas utilizando os valores brutos dos datasets originais e subtraindo dos valores
-limpos
+- Para fins de análise, foram contabilizados a quantidade de observações duplicadas utilizando os valores brutos dos datasets originais e subtraindo dos valores limpos
 
 ```{r}
 compras_limpas       = compras_nulos       %>% distinct()
@@ -291,6 +288,7 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         partidas      = nrow(partidas)      - nrow(partidas_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 ```
+
 - Padronizando as datas e seu tipo em POSIXct
 
 - O formato POSIXct salva cada valor de forma compacta em um único número inteiro ou decimal, ideal para dataframes
@@ -364,8 +362,7 @@ sessoes_limpas = sessoes_limpas %>%
          data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
 ```
 
-
-- Função que padroniza textos e numeros 
+- Função que padroniza textos e numeros
 
 ```{r}
 chave_texto = function(x) {
@@ -373,9 +370,9 @@ chave_texto = function(x) {
 }
 
 padronizar_categoria = function(x, validos, nome = "coluna") {
-  idx <- match(chave_texto(x), chave_texto(validos))
-  out <- ifelse(is.na(idx), str_squish(as.character(x)), validos[idx])
-  fora_da_lista <- unique(out[is.na(idx) & !is.na(x)])
+  idx = match(chave_texto(x), chave_texto(validos))
+  out = ifelse(is.na(idx), str_squish(as.character(x)), validos[idx])
+  fora_da_lista = unique(out[is.na(idx) & !is.na(x)])
   if (length(fora_da_lista) > 0) {
     cat("Atenção -", nome, "- valores fora da lista:", paste(fora_da_lista, collapse = ", "), "\n")
   }
@@ -400,7 +397,6 @@ sessoes_limpas = sessoes_limpas %>%
     genero_jogo = padronizar_categoria(genero_jogo, generos_jogo_validos, "sessoes$genero_jogo")
   )
 ```
-
 
 ```{r}
 resultados_validos = c("Vitória", "Derrota", "Empate")
@@ -447,12 +443,10 @@ itens_limpos = itens_limpos %>%
   )
 ```
 
-
 ```{r}
 itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
-
 
 ### Funções base
 
@@ -837,7 +831,7 @@ corrigir_datas_compras = function(compras, sessoes) {
 
 ### Jogadores
 
-- **`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`. 
+- **`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
 - **`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
 
 A `data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
@@ -1052,10 +1046,10 @@ corrigir_datas_jogadores = function(
 ### Aplicação
 
 ```{r}
-sessoes_limpas   <- corrigir_datas_sessoes(sessoes_limpas)
-partidas_limpas  <- corrigir_datas_partidas(partidas_limpas)
-compras_limpas   <- corrigir_datas_compras(compras_limpas, sessoes_limpas)
-jogadores_limpos <- corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
+sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
+partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
+compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
+jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
 ```
 
 ------------------------------------------------------------------------
