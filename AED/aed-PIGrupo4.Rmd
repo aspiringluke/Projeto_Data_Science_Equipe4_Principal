@@ -39,13 +39,30 @@ Esse documento tem como principal objetivo relatar os passos tomados para ler, a
 
 À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
 
+Será instalado e carregado o pacote 'dplyr' que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+
+Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já
+as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
+
 ```{r}
-compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/compras_20261006_185454_833908.csv')
-itens = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_20261006_185507_989772.csv')
-itens_compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/itens_compra_20261006_185507_991205.csv')
-jogadores = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/jogadores_10000_20261006_185423_273011.csv')
-partidas = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/partidas_20261006_185430_644338.csv')
-sessoes = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerador/output/sujos/sessoes_20261006_185423_866959.csv')
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("stringr")
+install.packages("stringi")
+install.packages("ggplot2")
+
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(stringi)
+
+compras = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/compras_20261021_195615_358020.csv')
+itens = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/itens_20261021_195620_141273.csv')
+itens_compras = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/itens_compra_20261021_195620_141517.csv')
+jogadores = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/jogadores_10000_20261021_195603_811815.csv')
+partidas = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/partidas_20261021_195606_660869.csv')
+sessoes = read.csv('/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main/gerador/output/sujos/sessoes_20261021_195604_041416.csv')
 ```
 
 ------------------------------------------------------------------------
@@ -147,25 +164,6 @@ summary(sessoes)
 ------------------------------------------------------------------------
 
 ## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
-
-Primeiramente será instalado e carregado o pacote 'dplyr' que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
-
-Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já
-as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
-
-```{r}
-install.packages("dplyr")
-install.packages("lubridate")
-install.packages("stringr")
-install.packages("stringi")
-install.packages("ggplot2")
-
-
-library(dplyr)
-library(lubridate)
-library(stringr)
-library(stringi)
-```
 
 Serão contabilizados a quantidade de observações vazias em cada dataset (Nesse caso, são observações das colunas que são "" e não NA)
 
@@ -455,6 +453,9 @@ itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
 
+```{r}
+View(partidas_limpas)
+```
 
 ------------------------------------------------------------------------
 
