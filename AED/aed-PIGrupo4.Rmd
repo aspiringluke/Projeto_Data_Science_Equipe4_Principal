@@ -453,8 +453,609 @@ itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
 
+
+### Funções base
+
+`datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`, `dmy` e `mdy`), mas converte só as linhas que casam com cada formato e usa `fast_strptime()` com formato fixo.
+
 ```{r}
-View(partidas_limpas)
+
+# Função que tenta interpretar uma data em três formatos diferentes:
+# ISO: 2024-05-03
+# DMY: 03/05/2024 (dia/mês/ano)
+# MDY: 05/03/2024 (mês/dia/ano)
+#
+# O objetivo é gerar as possíveis interpretações para que outras
+# funções possam escolher a data correta usando informações de referência.
+
+datas_corrigidas = function(x, hora = FALSE, tz = "UTC") {
+
+  # Remove espaços desnecessários do início, do fim e entre palavras.
+  x = str_squish(x)
+
+  # Guarda a quantidade de datas recebidas.
+  n = length(x)
+
+  # Se houver horário, adiciona horas, minutos e segundos ao formato.
+  # Caso contrário, interpreta somente a data.
+  sufixo = if (hora) " %H:%M:%S" else ""
+
+  # Função interna responsável por interpretar um formato de data.
+  # padrao: expressão regular que identifica o formato do texto.
+  # formato: formato de data esperado pelo R.
+  # trocar_hifen: permite trocar hífens por barras antes da conversão.
+  ler = function(padrao, formato, trocar_hifen = FALSE) {
+
+    # Identifica as posições que correspondem ao formato informado.
+    idx = which(grepl(padrao, x))
+
+    # Cria um vetor numérico preenchido com valores ausentes (NA).
+    # As posições válidas serão preenchidas com as datas convertidas.
+    segundos = rep(NA_real_, n)
+
+    # Só tenta converter se encontrar alguma data correspondente.
+    if (length(idx) > 0) {
+
+      # Seleciona somente os textos que correspondem ao formato.
+      txt = x[idx]
+
+      # Padroniza o separador quando necessário.
+      # Exemplo: 03-05-2024 passa a ser 03/05/2024.
+      if (trocar_hifen) txt = chartr("-", "/", txt)
+
+      # Converte os textos em datas e transforma os resultados
+      # em segundos desde 01/01/1970.
+      segundos[idx] = as.numeric(
+        fast_strptime(
+          txt,
+          paste0(formato, sufixo),
+          tz = tz,
+          lt = FALSE
+        )
+      )
+    }
+
+    # Reconstrói as datas a partir dos segundos calculados.
+    out = as.POSIXct(
+      segundos,
+      origin = "1970-01-01",
+      tz = tz
+    )
+
+    # Retorna data e horário ou somente a data, conforme o parâmetro.
+    if (hora) out else as.Date(out)
+  }
+
+  # Retorna uma lista com as três possíveis interpretações.
+  # A função não escolhe a interpretação correta neste momento.
+  list(
+    # Formato ISO: ano-mês-dia.
+    iso = ler(
+      "^[0-9]{4}-[0-9]{2}-[0-9]{2}",
+      "%Y-%m-%d"
+    ),
+
+    # Formato brasileiro: dia/mês/ano.
+    # Também aceita datas com hífens.
+    dmy = ler(
+      "^[0-9]{2}[/-][0-9]{2}[/-][0-9]{4}",
+      "%d/%m/%Y",
+      trocar_hifen = TRUE
+    ),
+
+    # Formato americano: mês/dia/ano.
+    mdy = ler(
+      "^[0-9]{2}/[0-9]{2}/[0-9]{4}",
+      "%m/%d/%Y"
+    )
+  )
+}
+
+
+# Verifica se as colunas informadas ainda contêm textos.
+# Isso evita executar novamente a conversão sobre colunas que
+# já foram transformadas em datas.
+exigir_texto = function(df, colunas) {
+
+  # Percorre cada nome de coluna recebido.
+  for (col in colunas) {
+
+    # Se a coluna não for do tipo character, interrompe a execução.
+    if (!is.character(df[[col]])) {
+
+      # Exibe uma mensagem explicando o problema encontrado.
+      stop(
+        "A coluna '", col,
+        "' já foi convertida. Rode esta etapa a partir do objeto com as datas em texto.",
+        call. = FALSE
+      )
+    }
+  }
+}
+
+
+# Converte segundos desde 01/01/1970 para data e horário.
+# O fuso horário utilizado por padrão é UTC.
+segundos_para_posix = function(s, tz = "UTC") {
+  as.POSIXct(s, origin = "1970-01-01", tz = tz)
+}
+
+
+# Identifica datas ambíguas.
+# Uma data é ambígua quando as interpretações brasileira e americana
+# são válidas, mas representam dias diferentes.
+#
+# Exemplo: 03/05/2024 pode significar 3 de maio ou 5 de março.
+eh_ambigua = function(cand) {
+
+  # Verifica se não existe interpretação ISO, mas existem
+  # interpretações DMY e MDY diferentes entre si.
+  is.na(cand$iso) &
+    !is.na(cand$dmy) &
+    !is.na(cand$mdy) &
+    cand$dmy != cand$mdy
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Sessões e partidas: referência = `duracao_minutos`
+
+Como só uma das duas datas da linha é suja, a outra fica em ISO. A função testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início × as três do fim) e escolhe a que bate com `duracao_minutos`.
+
+```{r}
+
+# Tenta encontrar a combinação de datas de início e fim
+# cuja diferença corresponda à duração informada em minutos.
+resolve_por_duracao = function(ini_txt, fim_txt, duracao, tz = "UTC") {
+
+  # Gera as possíveis interpretações das datas de início e fim.
+  ci = datas_corrigidas(ini_txt, hora = TRUE, tz = tz)
+  cf = datas_corrigidas(fim_txt, hora = TRUE, tz = tz)
+
+  # Organiza as datas em matrizes numéricas.
+  # Coluna 1: ISO; coluna 2: DMY; coluna 3: MDY.
+  ini_num = cbind(
+    as.numeric(ci$iso),
+    as.numeric(ci$dmy),
+    as.numeric(ci$mdy)
+  )
+
+  fim_num = cbind(
+    as.numeric(cf$iso),
+    as.numeric(cf$dmy),
+    as.numeric(cf$mdy)
+  )
+
+  # Cria as nove combinações possíveis:
+  # 3 formatos para o início multiplicados por 3 para o fim.
+  combos = expand.grid(i = 1:3, f = 1:3)
+
+  # Calcula o erro de cada combinação em relação à duração informada.
+  # Quanto menor o erro, mais compatível é a combinação.
+  erros = matrix(
+    vapply(seq_len(nrow(combos)), function(k) {
+
+      # Calcula a diferença entre fim e início em minutos
+      # e compara o resultado com a duração esperada.
+      abs(
+        (fim_num[, combos$f[k]] - ini_num[, combos$i[k]]) / 60 -
+          duracao
+      )
+
+    }, numeric(length(duracao))),
+    nrow = length(duracao)
+  )
+
+  # Combinações com valores ausentes não podem ser utilizadas.
+  # O infinito garante que elas não sejam escolhidas como melhores.
+  erros[is.na(erros)] = Inf
+
+  # Escolhe, em cada linha, a combinação com o menor erro.
+  # Em caso de empate, escolhe a primeira combinação encontrada.
+  melhor = max.col(-erros, ties.method = "first")
+
+  # Cria os índices das linhas da matriz.
+  pos = seq_along(melhor)
+
+  # Recupera o erro da melhor combinação de cada linha.
+  erro = erros[cbind(pos, melhor)]
+
+  # Recupera os valores de início e fim escolhidos.
+  ini = ini_num[cbind(pos, combos$i[melhor])]
+  fim = fim_num[cbind(pos, combos$f[melhor])]
+
+  # Se nenhuma combinação puder ser validada, prioriza:
+  # ISO, depois DMY e, por último, MDY.
+  sem_ref = is.infinite(erro)
+
+  ini[sem_ref] = dplyr::coalesce(
+    ini_num[, 1],
+    ini_num[, 2],
+    ini_num[, 3]
+  )[sem_ref]
+
+  fim[sem_ref] = dplyr::coalesce(
+    fim_num[, 1],
+    fim_num[, 2],
+    fim_num[, 3]
+  )[sem_ref]
+
+  # Retorna as datas corrigidas, o erro e a indicação de ambiguidade.
+  list(
+    ini = segundos_para_posix(ini, tz),
+    fim = segundos_para_posix(fim, tz),
+    erro = erro,
+    ambigua = eh_ambigua(ci) | eh_ambigua(cf)
+  )
+}
+
+
+# Corrige as datas das sessões utilizando duracao_minutos como referência.
+corrigir_datas_sessoes = function(sessoes) {
+
+  # Garante que as colunas ainda sejam textos.
+  exigir_texto(
+    sessoes,
+    c("data_inicio_sessao", "data_fim_sessao")
+  )
+
+  # Tenta resolver as datas com base na duração de cada sessão.
+  r = resolve_por_duracao(
+    sessoes$data_inicio_sessao,
+    sessoes$data_fim_sessao,
+    sessoes$duracao_minutos
+  )
+
+  # Exibe um resumo da qualidade da correção.
+  cat(
+    "Sessões - linhas com data ambígua:", sum(r$ambigua),
+    "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
+    "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
+  )
+
+  # Substitui as colunas originais pelas datas corrigidas.
+  sessoes %>%
+    mutate(
+      data_inicio_sessao = r$ini,
+      data_fim_sessao = r$fim
+    )
+}
+
+
+# Corrige as datas das partidas utilizando a duração como referência.
+corrigir_datas_partidas = function(partidas) {
+
+  # Verifica se as duas colunas de datas ainda são textos.
+  exigir_texto(
+    partidas,
+    c("data_inicio_partida", "data_fim_partida")
+  )
+
+  # Testa as combinações de formatos para início e fim.
+  r = resolve_por_duracao(
+    partidas$data_inicio_partida,
+    partidas$data_fim_partida,
+    partidas$duracao_minutos
+  )
+
+  # Mostra quantas datas são ambíguas e quantas foram validadas.
+  cat(
+    "Partidas - linhas com data ambígua:", sum(r$ambigua),
+    "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
+    "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
+  )
+
+  # Devolve a tabela com as datas corrigidas.
+  partidas %>%
+    mutate(
+      data_inicio_partida = r$ini,
+      data_fim_partida = r$fim
+    )
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Compras: `corrigir_datas` + intervalo da sessão
+
+A compra sempre acontece dentro do intervalo da sua sessão. Para datas ambíguas, vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas couberem, assume dd/mm.
+
+```{r}
+
+# Calcula a data correta de cada compra utilizando o intervalo
+# da sessão à qual a compra está associada.
+corrigir_datas_compras = function(compras, sessoes) {
+
+  # Confirma que a data da compra ainda está armazenada como texto.
+  exigir_texto(compras, "data_compra")
+
+  # Obtém as possíveis interpretações da data de cada compra.
+  cand = datas_corrigidas(compras$data_compra, hora = TRUE)
+
+  # Converte as datas para valores numéricos para facilitar comparações.
+  n_iso = as.numeric(cand$iso)
+  n_dmy = as.numeric(cand$dmy)
+  n_mdy = as.numeric(cand$mdy)
+
+  # Localiza a sessão correspondente a cada compra.
+  # match() retorna a posição da sessão com o mesmo sessao_id.
+  pos_sessao = match(compras$sessao_id, sessoes$sessao_id)
+
+  # Obtém os horários de início e fim das sessões correspondentes.
+  ini_n = as.numeric(sessoes$data_inicio_sessao[pos_sessao])
+  fim_n = as.numeric(sessoes$data_fim_sessao[pos_sessao])
+
+  # Verifica se uma data está dentro do intervalo da sessão.
+  dentro = function(x) {
+    !is.na(x) &
+      !is.na(ini_n) &
+      x >= ini_n &
+      x <= fim_n
+  }
+
+  # Define a data final seguindo esta prioridade:
+  # 1. ISO, quando disponível;
+  # 2. DMY, se estiver dentro da sessão;
+  # 3. MDY, se estiver dentro da sessão;
+  # 4. DMY como alternativa;
+  # 5. MDY, caso DMY não esteja disponível.
+  nova = ifelse(
+    !is.na(n_iso), n_iso,
+    ifelse(
+      dentro(n_dmy), n_dmy,
+      ifelse(
+        dentro(n_mdy), n_mdy,
+        ifelse(!is.na(n_dmy), n_dmy, n_mdy)
+      )
+    )
+  )
+
+  # Identifica datas em que DMY e MDY representam dias diferentes.
+  amb = eh_ambigua(cand)
+
+  # Informa quantas ambiguidades foram resolvidas pelo intervalo
+  # da sessão e quantas continuam sem uma decisão clara.
+  cat(
+    "Compras - datas ambíguas:", sum(amb),
+    "| resolvidas pela sessão:",
+    sum(amb & (dentro(n_dmy) != dentro(n_mdy))),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb & (dentro(n_dmy) == dentro(n_mdy))), "\n"
+  )
+
+  # Atualiza a coluna data_compra e retorna a tabela.
+  compras %>%
+    mutate(data_compra = segundos_para_posix(nova))
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Jogadores
+
+- **`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`. 
+- **`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
+
+A `data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
+
+```{r}
+
+# Calcula a idade completa de uma pessoa em uma data de referência.
+idade_em = function(nasc, ref) {
+
+  # Calcula a diferença entre os anos de referência e nascimento.
+  anos = as.numeric(format(ref, "%Y")) -
+    as.numeric(format(nasc, "%Y"))
+
+  # Se a pessoa ainda não fez aniversário no ano de referência,
+  # subtrai um ano do resultado.
+  anos - (format(nasc, "%m%d") > format(ref, "%m%d"))
+}
+
+
+# Corrige as datas de nascimento e de criação das contas dos jogadores.
+corrigir_datas_jogadores = function(
+  jogadores,
+  sessoes,
+  data_ref = as.Date("2026-10-19")
+) {
+
+  # Verifica se as duas colunas de datas ainda são textos.
+  exigir_texto(
+    jogadores,
+    c("data_nascimento", "data_criacao_conta")
+  )
+
+  # Guarda a quantidade de jogadores e cria índices das linhas.
+  n = nrow(jogadores)
+  pos = seq_len(n)
+
+  # ---------------------------------------------------------
+  # PARTE 1: CORREÇÃO DA DATA DE NASCIMENTO
+  # ---------------------------------------------------------
+
+  # Gera as possíveis interpretações das datas de nascimento.
+  cn = datas_corrigidas(
+    jogadores$data_nascimento,
+    hora = FALSE
+  )
+
+  # Armazena as três interpretações em uma matriz numérica.
+  num_n = cbind(
+    as.numeric(cn$iso),
+    as.numeric(cn$dmy),
+    as.numeric(cn$mdy)
+  )
+
+  # Calcula a diferença entre a idade de cada interpretação
+  # e a idade informada na tabela de jogadores.
+  erros_n = matrix(
+    unlist(
+      lapply(cn, function(d) {
+        abs(idade_em(d, data_ref) - jogadores$idade)
+      })
+    ),
+    nrow = n
+  )
+
+  # Interpretações inválidas recebem erro infinito.
+  erros_n[is.na(erros_n)] = Inf
+
+  # Seleciona a interpretação que apresenta o menor erro de idade.
+  melhor_n = max.col(-erros_n, ties.method = "first")
+
+  # Recupera a data de nascimento escolhida para cada jogador.
+  nasc_num = num_n[cbind(pos, melhor_n)]
+
+  # Identifica os casos em que nenhuma interpretação foi validada.
+  sem_ref = is.infinite(erros_n[cbind(pos, melhor_n)])
+
+  # Quando não houver uma referência válida, prioriza ISO, DMY e MDY.
+  nasc_num[sem_ref] = dplyr::coalesce(
+    num_n[, 1],
+    num_n[, 2],
+    num_n[, 3]
+  )[sem_ref]
+
+  # Converte os valores numéricos selecionados para Date.
+  nasc = as.Date(nasc_num, origin = "1970-01-01")
+
+  # Confere a consistência das datas originalmente interpretadas como ISO.
+  iso_ok = !is.na(cn$iso)
+
+  # Calcula o percentual de datas ISO cuja idade coincide com a informada.
+  pct_ok = mean(
+    idade_em(cn$iso[iso_ok], data_ref) ==
+      jogadores$idade[iso_ok],
+    na.rm = TRUE
+  )
+
+  # Identifica as datas de nascimento ambíguas.
+  amb_n = eh_ambigua(cn)
+
+  # Exibe indicadores de consistência da correção.
+  cat(
+    "Nascimento - conferência (datas ISO que batem com idade):",
+    round(100 * pct_ok, 1), "%\n"
+  )
+
+  cat(
+    "Nascimento - datas ambíguas:", sum(amb_n),
+    "| resolvidas pela idade:",
+    sum(amb_n & (erros_n[, 2] != erros_n[, 3])),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb_n & (erros_n[, 2] == erros_n[, 3])), "\n"
+  )
+
+  # ---------------------------------------------------------
+  # PARTE 2: CORREÇÃO DA DATA DE CRIAÇÃO DA CONTA
+  # ---------------------------------------------------------
+
+  # Gera as possíveis interpretações das datas de criação.
+  cc = datas_corrigidas(
+    jogadores$data_criacao_conta,
+    hora = FALSE
+  )
+
+  # Separa as três interpretações em valores numéricos.
+  c_iso = as.numeric(cc$iso)
+  c_dmy = as.numeric(cc$dmy)
+  c_mdy = as.numeric(cc$mdy)
+
+  # Define o limite inferior permitido para a criação da conta.
+  # A conta deve ter sido criada após o jogador completar 13 anos
+  # e depois de 01/01/2010.
+  lim_inf = pmax(
+    as.numeric(nasc %m+% years(13)),
+    as.numeric(as.Date("2010-01-01")),
+    na.rm = TRUE
+  )
+
+  # Encontra a primeira sessão de cada jogador.
+  # tapply() agrupa as datas pelo identificador player_id e calcula o mínimo.
+  prim = tapply(
+    as.numeric(as.Date(sessoes$data_inicio_sessao)),
+    sessoes$player_id,
+    min,
+    na.rm = TRUE
+  )
+
+  # Recupera a primeira sessão correspondente a cada jogador.
+  lim_sup = as.numeric(
+    prim[as.character(jogadores$player_id)]
+  )
+
+  # A criação da conta não pode ultrapassar a data de referência.
+  # O limite superior é o menor valor entre a primeira sessão
+  # e a data de referência.
+  lim_sup = pmin(
+    lim_sup,
+    as.numeric(data_ref),
+    na.rm = TRUE
+  )
+
+  # Verifica se uma data está entre os limites permitidos.
+  dentro = function(x) {
+    !is.na(x) &
+      x >= lim_inf &
+      x <= lim_sup
+  }
+
+  # Escolhe a data de criação seguindo esta prioridade:
+  # 1. ISO, quando disponível;
+  # 2. DMY, se respeitar os limites;
+  # 3. MDY, se respeitar os limites;
+  # 4. DMY como alternativa;
+  # 5. MDY, caso DMY não esteja disponível.
+  cria = ifelse(
+    !is.na(c_iso), c_iso,
+    ifelse(
+      dentro(c_dmy), c_dmy,
+      ifelse(
+        dentro(c_mdy), c_mdy,
+        ifelse(!is.na(c_dmy), c_dmy, c_mdy)
+      )
+    )
+  )
+
+  # Identifica as datas de criação ambíguas.
+  amb_c = eh_ambigua(cc)
+
+  # Exibe o resultado da validação das datas de criação.
+  cat(
+    "Criação da conta - datas ambíguas:", sum(amb_c),
+    "| resolvidas pelos limites:",
+    sum(amb_c & (dentro(c_dmy) != dentro(c_mdy))),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb_c & (dentro(c_dmy) == dentro(c_mdy))), "\n"
+  )
+
+  # Retorna a tabela atualizada com as duas datas corrigidas.
+  jogadores %>%
+    mutate(
+      data_nascimento = nasc,
+      data_criacao_conta = as.Date(
+        cria,
+        origin = "1970-01-01"
+      )
+    )
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Aplicação
+
+```{r}
+sessoes_limpas   <- corrigir_datas_sessoes(sessoes_limpas)
+partidas_limpas  <- corrigir_datas_partidas(partidas_limpas)
+compras_limpas   <- corrigir_datas_compras(compras_limpas, sessoes_limpas)
+jogadores_limpos <- corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
 ```
 
 ------------------------------------------------------------------------
