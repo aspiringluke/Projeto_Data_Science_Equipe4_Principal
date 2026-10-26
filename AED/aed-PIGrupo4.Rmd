@@ -448,6 +448,75 @@ itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
 
+  - `genero` e `pais` são padronizados com as listas válidas do gerador.
+  - `cidade`: quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
+
+
+```{r}
+# --- Vetores de Validação e Padronização ---
+
+# Lista de países permitidos para validação posterior
+paises_validos = c("Brasil", "Estados Unidos", "Portugal", "Espanha", "França", "Alemanha", "Itália", "Reino Unido", "Canadá", "Austrália", "México", "Argentina")
+
+# Lista de gêneros aceitos no conjunto de dados
+generos_validos = c("Masculino", "Feminino")
+
+# Conjunções e artigos comuns em nomes de cidades que não devem ter a primeira letra maiúscula
+particulas_cidade = c("de", "da", "do", "das", "dos", "del", "della", "di", "du", "la", "le", "les", "los", "las", "of", "the", "von", "van", "der", "den")
+
+
+# --- Funções Auxiliares ---
+
+# Função para formatar o nome das cidades no estilo "Título" (Ex: "rio de janeiro" -> "Rio de Janeiro")
+titulo_cidade = function(x) {
+  # Cria uma expressão regular para encontrar as partículas isoladas por espaços ou hifens
+  padrao = paste0("(?<=[ -])(", paste(particulas_cidade, collapse = "|"), ")(?=[ -])")
+  
+  x %>% 
+    str_to_lower() %>%                            # Converte todo o texto para minúsculo
+    str_to_title() %>%                            # Transforma a primeira letra de cada palavra em maiúscula
+    str_replace_all(regex(padrao, ignore_case = TRUE), str_to_lower) # Devolve as partículas para minúsculo
+}
+
+
+# --- Criação de Dicionário de Referência ---
+
+# Mapeia cidades que já possuem uma grafia correta/mista na base (evita aplicar a função de título do zero)
+ref_cidades = jogadores_limpos %>% 
+  filter(!is.na(cidade)) %>%                      # Remove valores nulos
+  mutate(cidade = str_squish(cidade)) %>%         # Remove espaços extras no início, fim e duplicados
+  filter(cidade != str_to_upper(cidade),          # Filtra para manter apenas cidades que NÃO estão todas em maiúsculo...
+         cidade != str_to_lower(cidade)) %>%      # ...e NÃO estão todas em minúsculo (mantém a grafia original correta)
+  mutate(chave = str_to_lower(cidade)) %>%        # Cria uma chave em minúsculo para busca posterior
+  count(chave, cidade) %>%                        # Conta a frequência de cada grafia
+  arrange(chave, desc(n)) %>%                     # Ordena pela chave e pelas grafias mais frequentes
+  distinct(chave, .keep_all = TRUE)               # Mantém apenas a grafia mais comum para cada cidade
+
+
+# --- Limpeza e Padronização da Base de Dados ---
+
+jogadores_limpos = jogadores_limpos %>% 
+  mutate(
+    cidade = str_squish(cidade),                  # Remove espaços em branco redundantes
+    chave_cidade = str_to_lower(cidade),          # Cria chave temporária para cruzamento
+    
+    # Atualiza o nome da cidade: tenta usar a grafia de referência (ref_cidades); 
+    # se não encontrar, aplica a função titulo_cidade
+    cidade = coalesce(ref_cidades$cidade[match(chave_cidade, ref_cidades$chave)], titulo_cidade(cidade)),
+    
+    # Padroniza a coluna de gênero usando a função externa 'padronizar_categoria'
+    genero = padronizar_categoria(genero, generos_validos, "jogadores$genero"),
+    
+    # Padroniza a coluna de país usando a função externa 'padronizar_categoria'
+    pais = padronizar_categoria(pais, paises_validos, "jogadores$pais")
+  ) %>% 
+  select(-chave_cidade)                           # Remove a coluna de chave temporária
+Use o código com cuidado.
+
+```
+
+
+
 ### Funções base
 
 `datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`, `dmy` e `mdy`), mas converte só as linhas que casam com cada formato e usa `fast_strptime()` com formato fixo.
@@ -1050,6 +1119,261 @@ sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
 partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
 compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
 jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
+```
+
+Para cada linha, usando o `pais` como chave:
+
+1. Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
+2. Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
+3. Se não achar, mantém o texto e lista no console para completar o dicionário.
+
+```{r}
+# --- Configuração do Mapeamento e Validação de Países/Estados ---
+
+# Vetor de correspondência: Nome do país -> Código ISO de 2 letras
+pais_para_iso <- c(
+  "Brasil" = "BR", "Estados Unidos" = "US", "Portugal" = "PT", "Espanha" = "ES",
+  "França" = "FR", "Alemanha" = "DE", "Itália" = "IT", "Reino Unido" = "GB",
+  "Canadá" = "CA", "Austrália" = "AU", "México" = "MX", "Argentina" = "AR"
+)
+
+# Função para buscar o código ISO do país de forma robusta
+# Normaliza o nome do país usando 'chave_texto' para ignorar maiúsculas/minúsculas e acentos
+iso_do_pais <- function(pais) {
+  tabela <- setNames(pais_para_iso, chave_texto(names(pais_para_iso)))
+  unname(tabela[chave_texto(pais)])
+}
+
+# Cria um vetor de siglas oficiais válidas por país a partir do pacote ISOcodes
+# O formato final gerado na chave é "ISO_PAIS SIGLA_ESTADO" (Ex: "BR SP", "US CA")
+siglas_validas <- ISOcodes::ISO_3166_2 %>%
+  filter(str_sub(Code, 1, 2) %in% pais_para_iso) %>%
+  transmute(chave = paste(str_sub(Code, 1, 2), str_sub(Code, 4))) %>%
+  pull(chave)
+
+
+# --- Dicionário de Equivalência de Nomes de Estados/Regiões ---
+
+# Tabela manual que mapeia múltiplas grafias ou variações de nomes para a sigla padrão correspondente
+dic_estados <- tribble(
+  ~pais_iso, ~sigla, ~nomes,
+  # Brasil
+  "BR", "DF", "Federal District|Distrito Federal",
+  # Reino Unido
+  "GB", "ENG", "England",
+  "GB", "SCT", "Scotland",
+  "GB", "WLS", "Wales|Cymru",
+  "GB", "NIR", "Northern Ireland",
+  # Alemanha
+  "DE", "BW", "Baden-Württemberg|Baden-Wuerttemberg",
+  "DE", "BY", "Bavaria|Bayern",
+  "DE", "BE", "Berlin|State of Berlin",
+  "DE", "BB", "Brandenburg",
+  "DE", "HB", "Bremen",
+  "DE", "HH", "Hamburg",
+  "DE", "HE", "Hesse|Hessen",
+  "DE", "MV", "Mecklenburg-Vorpommern|Mecklenburg-West Pomerania",
+  "DE", "NI", "Lower Saxony|Niedersachsen",
+  "DE", "NW", "North Rhine-Westphalia|Nordrhein-Westfalen",
+  "DE", "RP", "Rheinland-Pfalz|Rhineland-Palatinate",
+  "DE", "SL", "Saarland",
+  "DE", "SN", "Saxony|Sachsen",
+  "DE", "ST", "Saxony-Anhalt|Sachsen-Anhalt",
+  "DE", "SH", "Schleswig-Holstein",
+  "DE", "TH", "Thuringia|Thüringen",
+  # França
+  "FR", "ARA", "Auvergne-Rhône-Alpes|Rhône-Alpes|Auvergne",
+  "FR", "BFC", "Bourgogne-Franche-Comté|Bourgogne|Franche-Comté",
+  "FR", "BRE", "Brittany|Bretagne",
+  "FR", "CVL", "Centre-Val de Loire|Centre",
+  "FR", "COR", "Corsica|Corse",
+  "FR", "GES", "Grand Est|Alsace|Champagne-Ardenne|Lorraine",
+  "FR", "HDF", "Hauts-de-France|Nord-Pas-de-Calais|Picardie",
+  "FR", "IDF", "Île-de-France",
+  "FR", "NOR", "Normandy|Normandie|Basse-Normandie|Haute-Normandie",
+  "FR", "NAQ", "Nouvelle-Aquitaine|New Aquitaine|Aquitaine|Limousin|Poitou-Charentes",
+  "FR", "OCC", "Occitania|Occitanie|Languedoc-Roussillon|Midi-Pyrénées",
+  "FR", "PDL", "Pays de la Loire",
+  "FR", "PAC", "Provence-Alpes-Côte d'Azur",
+  # Espanha
+  "ES", "AN", "Andalusia|Andalucía",
+  "ES", "AR", "Aragon|Aragón",
+  "ES", "AS", "Asturias|Principality of Asturias|Principado de Asturias",
+  "ES", "IB", "Balearic Islands|Illes Balears|Islas Baleares",
+  "ES", "PV", "Basque Country|País Vasco|Euskadi",
+  "ES", "CN", "Canary Islands|Canarias|Islas Canarias",
+  "ES", "CB", "Cantabria",
+  "ES", "CM", "Castille-La Mancha|Castilla-La Mancha|Castile-La Mancha",
+  "ES", "CL", "Castille and León|Castilla y León|Castile and León|Castile and Leon",
+  "ES", "CT", "Catalonia|Cataluña|Catalunya",
+  "ES", "CE", "Ceuta",
+  "ES", "EX", "Extremadura",
+  "ES", "GA", "Galicia",
+  "ES", "RI", "La Rioja",
+  "ES", "MD", "Madrid|Comunidad de Madrid",
+  "ES", "ME", "Melilla",
+  "ES", "MC", "Murcia|Región de Murcia",
+  "ES", "NC", "Navarre|Navarra",
+  "ES", "VC", "Valencia|Comunidad Valenciana|Comunitat Valenciana",
+  # Itália
+  "IT", "21", "Piedmont|Piemonte",
+  "IT", "23", "Aosta Valley|Valle d'Aosta",
+  "IT", "25", "Lombardy|Lombardia",
+  "IT", "32", "Trentino-Alto Adige|Trentino-Südtirol",
+  "IT", "34", "Veneto",
+  "IT", "36", "Friuli Venezia Giulia|Friuli-Venezia Giulia",
+  "IT", "42", "Liguria",
+  "IT", "45", "Emilia-Romagna",
+  "IT", "52", "Tuscany|Toscana",
+  "IT", "55", "Umbria",
+  "IT", "57", "Marche|The Marches",
+  "IT", "62", "Latium|Lazio",
+  "IT", "65", "Abruzzo",
+  "IT", "67", "Molise",
+  "IT", "72", "Campania",
+  "IT", "75", "Apulia|Puglia",
+  "IT", "77", "Basilicate|Basilicata",
+  "IT", "78", "Calabria",
+  "IT", "82", "Sicily|Sicilia",
+  "IT", "88", "Sardinia|Sardegna",
+  # Portugal
+  "PT", "01", "Aveiro",
+  "PT", "02", "Beja",
+  "PT", "03", "Braga",
+  "PT", "04", "Bragança|Braganca",
+  "PT", "05", "Castelo Branco",
+  "PT", "06", "Coimbra",
+  "PT", "07", "Évora",
+  "PT", "08", "Faro",
+  "PT", "09", "Guarda",
+  "PT", "10", "Leiria",
+  "PT", "11", "Lisbon|Lisboa",
+  "PT", "12", "Portalegre",
+  "PT", "13", "Porto",
+  "PT", "14", "Santarém",
+  "PT", "15", "Setúbal",
+  "PT", "16", "Viana do Castelo",
+  "PT", "17", "Vila Real",
+  "PT", "18", "Viseu",
+  "PT", "20", "Azores|Açores|Região Autónoma dos Açores",
+  "PT", "30", "Madeira|Região Autónoma da Madeira",
+  # México
+  "MX", "AGU", "Aguascalientes",
+  "MX", "BCN", "Baja California",
+  "MX", "BCS", "Baja California Sur",
+  "MX", "CAM", "Campeche",
+  "MX", "CHP", "Chiapas",
+  "MX", "CHH", "Chihuahua",
+  "MX", "CMX", "Mexico City|Ciudad de México|Distrito Federal",
+  "MX", "COA", "Coahuila|Coahuila de Zaragoza",
+  "MX", "COL", "Colima",
+  "MX", "DUR", "Durango",
+  "MX", "GUA", "Guanajuato",
+  "MX", "GRO", "Guerrero",
+  "MX", "HID", "Hidalgo",
+  "MX", "JAL", "Jalisco",
+  "MX", "MEX", "México|Estado de México|State of Mexico",
+  "MX", "MIC", "Michoacán|Michoacán de Ocampo",
+  "MX", "MOR", "Morelos",
+  "MX", "NAY", "Nayarit",
+  "MX", "NLE", "Nuevo León",
+  "MX", "OAX", "Oaxaca",
+  "MX", "PUE", "Puebla",
+  "MX", "QUE", "Querétaro|Querétaro de Arteaga",
+  "MX", "ROO", "Quintana Roo",
+  "MX", "SLP", "San Luis Potosí",
+  "MX", "SIN", "Sinaloa",
+  "MX", "SON", "Sonora",
+  "MX", "TAB", "Tabasco",
+  "MX", "TAM", "Tamaulipas",
+  "MX", "TLA", "Tlaxcala",
+  "MX", "VER", "Veracruz|Veracruz de Ignacio de la Llave",
+  "MX", "YUC", "Yucatán",
+  "MX", "ZAC", "Zacatecas",
+  # Argentina
+  "AR", "A", "Salta",
+  "AR", "B", "Buenos Aires|Provincia de Buenos Aires",
+  "AR", "C", "Ciudad Autónoma de Buenos Aires|Buenos Aires F.D.|Buenos Aires Federal District|Capital Federal",
+  "AR", "D", "San Luis",
+  "AR", "E", "Entre Ríos",
+  "AR", "F", "La Rioja",
+  "AR", "G", "Santiago del Estero",
+  "AR", "H", "Chaco",
+  "AR", "J", "San Juan",
+  "AR", "K", "Catamarca",
+  "AR", "L", "La Pampa",
+  "AR", "M", "Mendoza",
+  "AR", "N", "Misiones",
+  "AR", "P", "Formosa",
+  "AR", "Q", "Neuquén",
+  "AR", "R", "Río Negro",
+  "AR", "S", "Santa Fe",
+  "AR", "T", "Tucumán",
+  "AR", "U", "Chubut",
+  "AR", "V", "Tierra del Fuego",
+  "AR", "W", "Corrientes",
+  "AR", "X", "Córdoba",
+  "AR", "Y", "Jujuy",
+  "AR", "Z", "Santa Cruz"
+)
+
+
+# --- Transformação do Dicionário para Formato Longo ---
+
+# Divide a coluna 'nomes' onde houver o caractere "|" para separar cada variação gráfica
+partes <- strsplit(dic_estados$nomes, "|", fixed = TRUE)
+
+# Cria um novo data frame onde cada linha possui apenas uma grafia (formato longo)
+dic_long <- data.frame(
+  pais_iso = rep(dic_estados$pais_iso, lengths(partes)),
+  sigla    = rep(dic_estados$sigla, lengths(partes)),
+  chave    = chave_texto(unlist(partes)), # Normaliza o nome da variação como chave de busca
+  stringsAsFactors = FALSE
+) %>% distinct(pais_iso, chave, sigla)          # Remove duplicatas exatas
+
+# Validação de integridade: garante que uma mesma chave de texto não aponte para siglas diferentes no mesmo país
+conflitos <- dic_long %>% group_by(pais_iso, chave) %>% filter(n_distinct(sigla) > 1)
+stopifnot(nrow(conflitos) == 0) # Interrompe a execução caso existam conflitos de mapeamento
+
+# Cria um vetor nomeado final para busca rápida. Ex: "BR distrito federal" = "DF"
+dic_vec <- setNames(dic_long$sigla, paste(dic_long$pais_iso, dic_long$chave))
+```
+
+```{r}
+# --- Função Principal de Correção dos Estados ---
+
+corrigir_estados <- function(df) {
+  # Obtém os códigos ISO dos países presentes no dataframe informado
+  iso      <- iso_do_pais(df$pais)
+  # Remove espaços extras do campo de estado
+  estado   <- str_squish(df$estado)
+  # Converte o texto do estado para maiúsculo (caso já seja uma sigla informada)
+  sigla_up <- str_to_upper(estado)
+
+  # Condição 1: Verifica se a entrada já é uma sigla válida cadastrada no ISOcodes
+  ja_sigla <- !is.na(estado) & !is.na(iso) & paste(iso, sigla_up) %in% siglas_validas
+  
+  # Condição 2: Busca a sigla correspondente no dicionário estendido construído anteriormente
+  por_nome <- unname(dic_vec[paste(iso, chave_texto(estado))])
+
+  # Se já era uma sigla válida, mantém a sigla em maiúsculo; caso contrário, usa o mapeamento por nome
+  novo          <- ifelse(ja_sigla, sigla_up, por_nome)
+  # Identifica registros com texto de estado que não conseguiram ser mapeados para nenhuma sigla
+  nao_resolvido <- !is.na(estado) & is.na(novo)
+
+  # Exibe no console um resumo das conversões realizadas
+  cat("Estado - já era sigla:", sum(ja_sigla),
+      "| convertidos pelo dicionário:", sum(!is.na(novo) & !ja_sigla),
+      "| não resolvidos:", sum(nao_resolvido), "\n")
+
+  # Exibe os casos não resolvidos para facilitar a manutenção do dicionário
+  if (any(nao_resolvido)) {
+    cat("\nNão resolvidos (adicione em dic_estados):\n")
+    print(count(data.frame(pais = df$pais[nao_resolvido], estado = estado[nao_resolvido])))
+  }
+  
+  return(novo) # Nota: Adicionado o retorno do vetor transformado para completar a lógica da função
+}
 ```
 
 ------------------------------------------------------------------------
