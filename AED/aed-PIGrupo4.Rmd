@@ -39,11 +39,13 @@ Esse documento tem como principal objetivo relatar os passos tomados para ler, a
 
 À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
 
-Será instalado e carregado o pacote 'dplyr' que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+Será instalado e carregado o pacote `dplyr` que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
 
 Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
 
-```{r}
+A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem a visualização e interpretação dos dados por meio de diferentes tipos de gráficos, como gráficos de barras, linhas, dispersão e histogramas, etc.
+
+```{r Etapa 1 - Importação do Dataset}
 install.packages("dplyr")
 install.packages("lubridate")
 install.packages("stringr")
@@ -68,11 +70,15 @@ sessoes = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI/gerad
 
 ## Etapa 2 - Análise Inicial {#etapa-2---análise-inicial}
 
-Para a etapa 2 dessa análise, foram utilizadas algumas funções para realizar uma exploração inicial dos datasets do nosso projeto.
+À princípio, a função `head()` permite observar as seis primeiras linhas de cada DataFrame, possibilitando uma compreensão inicial dos dados e das variáveis presentes em cada conjunto.
 
-Ao utilizar a função `head()`, podemos analisar as seis primeiras observações de cada dataFrame gerado, a fim de ter uma noção básica das variáveis e suas respectivas observações. À princípio
+Em seguida, a função `names()` é utilizada para identificar os nomes das colunas de cada DataFrame, facilitando o reconhecimento das variáveis disponíveis e auxiliando na compreensão da organização dos dados.
 
-```{r}
+Posteriormente, a função `str()` permite examinar a estrutura de cada conjunto de dados, apresentando a quantidade de observações, as variáveis existentes e seus respectivos tipos, como numéricos, caracteres ou inteiros.
+
+Por fim, a função `summary()` fornece um resumo estatístico das variáveis, incluindo medidas como mínimo, máximo, mediana, média e quartis para variáveis numéricas, além de informações sobre a frequência de valores para variáveis categóricas. Dessa forma, essas funções contribuem para uma exploração inicial dos datasets, permitindo identificar características relevantes, compreender a estrutura dos dados e obter uma visão geral que servirá de base para as próximas etapas da análise.
+
+```{r Etapa 2 - Análise Inicial : head()}
 # head
 head(compras)
 head(itens)
@@ -82,7 +88,7 @@ head(partidas)
 head(sessoes)
 ```
 
-```{r}
+```{r Etapa 2 - Análise Inicial : names()}
 # names
 cat('Compras:\n')
 names(compras)
@@ -108,7 +114,7 @@ cat('Sessões:\n')
 names(sessoes)
 ```
 
-```{r}
+```{r Etapa 2 - Análise Inicial : str()}
 # structure
 cat('Compras:\n')
 str(compras)
@@ -134,7 +140,7 @@ cat('Sessões:\n')
 str(sessoes)
 ```
 
-```{r}
+```{r Etapa 2 - Análise Inicial : summary()}
 # Summary
 cat('Compras:\n')
 summary(compras)
@@ -168,7 +174,7 @@ Serão contabilizados a quantidade de observações vazias em cada dataset (Ness
 
 Será contabilizado também a média de observações vazias
 
-```{r}
+```{r Etapa 3 - Investigando Dados Sujos : sum()}
 cat("Valores ausentes — Compras:\n")
 sum(compras == "")
 cat('\n')
@@ -243,9 +249,13 @@ sum(is.na(sessoes))
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
 
-- Padronização das diferentes formas de valores ausentes em NA
+### 1. Padronizaçãio de valores ausentes
 
-- A função `limpa_nulos()` precisa ser executada antes de serem executadas as funções posteriores, pois elas irão utilizar os dados nulos padronizados para fazer as limpezas posteriores
+Nesta etapa, foi criada a função `limpa_nulos()`, responsável por padronizar as diferentes representações de valores ausentes encontradas nos datasets. Os valores representados por strings vazias (""), "NA" e "NULL" são substituídos pelo valor especial NA do R, que indica a ausência de um dado.
+
+A função utiliza `lapply()` para percorrer as colunas do dataset e aplicar a substituição em cada uma delas, enquanto **df[]** permite atualizar as colunas sem alterar a estrutura original do data frame.
+
+Essa padronização facilita as etapas seguintes de limpeza e análise, pois permite tratar os valores ausentes de maneira consistente. Por isso, a função é executada antes das demais transformações em todos os datasets utilizados.
 
 ```{r}
 limpa_nulos = function(df) {
@@ -266,11 +276,21 @@ sessoes_nulos       = limpa_nulos(sessoes)
 
 ```
 
-- Remoção de valores duplicidados
+### 2.  Remoção de registros duplicados & Contabilização dos registros duplicados removido
 
-- A função `distinct()` retorna apenas valores únicos, fazendo com que haja apenas obseravções únicas para cada dataset
+Após a padronização dos valores ausentes, foi utilizada a função `distinct()`, do pacote **dplyr**, para remover registros duplicados de cada dataset.
 
-- Para fins de análise, foram contabilizados a quantidade de observações duplicadas utilizando os valores brutos dos datasets originais e subtraindo dos valores limpos
+Por padrão, `distinct()` considera todas as colunas para identificar registros repetidos, mantendo apenas uma ocorrência de cada combinação de valores. Dessa forma, os datasets passam a conter apenas registros distintos, reduzindo redundâncias que poderiam interferir nas análises posteriores.
+
+Os resultados são armazenados em novos objetos com o sufixo \*\_limpos\*, preservando os datasets originais e as versões intermediárias geradas na etapa anterior.
+
+------------------------------------------------------------------------
+
+Para avaliar o impacto da limpeza, foi calculada a quantidade de registros removidos de cada dataset. Para isso, a função `nrow()` obtém o número de linhas de cada dataset, e a diferença entre a quantidade original de linhas e a quantidade de linhas após a remoção das duplicatas indica quantos registros foram eliminados.
+
+A função `cat()` exibe uma mensagem identificando o resultado, enquanto `print()` apresenta as quantidades calculadas em um vetor nomeado, facilitando a comparação entre os datasets.
+
+Essa verificação permite avaliar o volume de duplicidades encontrado em cada conjunto de dados e documentar os resultados da transformação realizada.
 
 ```{r}
 compras_limpas       = compras_nulos       %>% distinct()
@@ -289,9 +309,17 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 ```
 
-- Padronizando as datas e seu tipo em POSIXct
+### 3.  Padronização das datas e conversão para tipos apropriados
 
-- O formato POSIXct salva cada valor de forma compacta em um único número inteiro ou decimal, ideal para dataframes
+Nesta etapa, foram criadas funções auxiliares para interpretar datas registradas em diferentes formatos e convertê-las para tipos reconhecidos pelo R. Essa transformação é importante porque os dados originais podem apresentar formatos distintos, como **AAAA-MM-DD**, **DD/MM/AAAA** e **MM/DD/AAAA**, dificultando a realização de cálculos e comparações temporais.
+
+A função `candidatas()` identifica possíveis interpretações para cada data, considerando os formatos ISO, **dia/mês/ano (dmy)** e **mês/dia/ano (mdy)**. Para isso, utiliza expressões regulares para identificar os padrões e a função `parse_date_time()`, do pacote lubridate, para interpretar os valores encontrados. Quando necessário, a função também considera a presença de horários e define o fuso horário utilizado na conversão.
+
+Para datas sem horário, os valores são convertidos para o tipo Date. Para datas com horário, são mantidos como objetos de data e hora, permitindo cálculos de duração e comparação entre instantes.
+
+A função `resolve_data()` é responsável por escolher a interpretação mais adequada entre as candidatas. Quando uma data pode representar dias e meses em ordens diferentes, a função verifica se as interpretações são ambíguas e, quando existem referências de início e fim, utiliza a diferença temporal entre elas para auxiliar na escolha do formato mais plausível. Caso não seja possível determinar a interpretação com base nessas referências, a função assume o formato dia/mês/ano e contabiliza os casos para informar possíveis limitações da conversão.
+
+Por fim, a função `dif_min()` calcula a diferença absoluta entre duas datas em minutos. Esse cálculo é utilizado como critério auxiliar para comparar as possíveis interpretações das datas de início e término de partidas e sessões.
 
 ```{r}
 candidatas = function(x, hora = FALSE, tz = "UTC") {
@@ -324,6 +352,16 @@ resolve_data = function(cand, erro_dmy = NULL, erro_mdy = NULL) {
 
 dif_min  = function(a, b) abs(as.numeric(difftime(a, b, units = "mins")))
 ```
+
+### 4.  Aplicação da padronização das datas nos datasets
+
+Após a definição das funções auxiliares, elas são aplicadas às colunas de data dos datasets de compras, jogadores, partidas e sessões.
+
+No dataset de compras, a coluna data_compra é interpretada considerando a possibilidade de conter horário. No dataset de jogadores, as colunas data_nascimento e data_criacao_conta são convertidas para o tipo Date, pois representam datas sem necessidade de considerar o horário.
+
+Já nos datasets de partidas e sessões, as datas de início e término são interpretadas separadamente. Em seguida, as diferenças entre as possíveis interpretações dos pares de datas são calculadas para auxiliar na identificação do formato mais coerente. As colunas são então atualizadas com os valores convertidos.
+
+A utilização de `mutate()` permite substituir as colunas originais pelos valores padronizados, mantendo as demais informações dos datasets. Dessa maneira, os campos temporais passam a utilizar tipos apropriados para análises cronológicas, cálculos de duração e verificações de consistência.
 
 ```{r}
 # --- COMPRAS ---
@@ -362,7 +400,15 @@ sessoes_limpas = sessoes_limpas %>%
          data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
 ```
 
-- Função que padroniza textos e numeros
+### 5.  Criação de funções para padronização de textos e números
+
+Nesta etapa, foram desenvolvidas funções auxiliares para uniformizar valores textuais e converter representações numéricas armazenadas como texto.
+
+A função `chave_texto()` prepara os textos para comparação, convertendo os valores para caracteres, removendo espaços excedentes, eliminando diferenças de acentuação e transformando todas as letras em minúsculas. Isso permite reconhecer como equivalentes valores que diferem apenas na capitalização, na acentuação ou na quantidade de espaços.
+
+A função `padronizar_categoria()` utiliza essa chave normalizada para comparar os valores encontrados com uma lista de categorias válidas. Quando encontra uma correspondência, substitui o valor original pela grafia padronizada definida na lista. Quando não encontra correspondência, mantém o texto original após remover os espaços excedentes e exibe um aviso com os valores que não pertencem à lista de categorias válidas. Essa abordagem permite uniformizar as categorias sem descartar silenciosamente valores inesperados.
+
+Por fim, a função `converter_numero()` converte valores textuais em números. Antes da conversão, os valores são transformados em caracteres, têm seus espaços excedentes removidos e as vírgulas decimais são substituídas por pontos. Em seguida, **as.numeric()** realiza a conversão para o tipo numérico, permitindo que esses valores sejam utilizados em cálculos matemáticos e análises estatísticas.
 
 ```{r}
 chave_texto = function(x) {
@@ -384,7 +430,15 @@ converter_numero = function(x) {
 }
 ```
 
-- padronização de texto e numeros
+### 6.  Aplicação da padronização de textos e categorias
+
+Após a definição das funções auxiliares, são estabelecidas listas de categorias válidas para os gêneros de jogos e as plataformas utilizadas nas sessões.
+
+A lista **generos_jogo_validos** define os gêneros aceitos, como FPS, RPG, Ação, Aventura e Estratégia. Já a lista plataformas_validas estabelece as categorias reconhecidas para as plataformas, incluindo PC, PlayStation, Xbox e Mobile.
+
+Essas listas funcionam como referências para a padronização dos dados. Em seguida, a função `padronizar_categoria()` é aplicada às colunas plataforma e genero_jogo do dataset sessoes_limpas, por meio de `mutate()`
+
+Com isso, valores equivalentes passam a utilizar uma representação uniforme, reduzindo inconsistências causadas por diferenças de escrita. Os valores que não correspondem às categorias predefinidas são preservados e sinalizados para análise posterior, evitando a exclusão automática de informações potencialmente relevantes.
 
 ```{r}
 generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
@@ -448,9 +502,9 @@ itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
 
-  - `genero` e `pais` são padronizados com as listas válidas do gerador.
-  - `cidade`: quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
+`genero` e `pais` são padronizados com as listas válidas do gerador.
 
+Em relação a `cidade`, quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
 
 ```{r}
 # --- Vetores de Validação e Padronização ---
@@ -514,8 +568,6 @@ jogadores_limpos = jogadores_limpos %>%
 Use o código com cuidado.
 
 ```
-
-
 
 ### Funções base
 
@@ -900,10 +952,11 @@ corrigir_datas_compras = function(compras, sessoes) {
 
 ### Jogadores
 
-- **`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
-- **`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
+**`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
 
-A `data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
+**`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
+
+`data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
 
 ```{r}
 
@@ -1123,15 +1176,15 @@ jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
 
 Para cada linha, usando o `pais` como chave:
 
-1. Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
-2. Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
-3. Se não achar, mantém o texto e lista no console para completar o dicionário.
+1.  Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
+2.  Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
+3.  Se não achar, mantém o texto e lista no console para completar o dicionário.
 
 ```{r}
 # --- Configuração do Mapeamento e Validação de Países/Estados ---
 
 # Vetor de correspondência: Nome do país -> Código ISO de 2 letras
-pais_para_iso <- c(
+pais_para_iso = c(
   "Brasil" = "BR", "Estados Unidos" = "US", "Portugal" = "PT", "Espanha" = "ES",
   "França" = "FR", "Alemanha" = "DE", "Itália" = "IT", "Reino Unido" = "GB",
   "Canadá" = "CA", "Austrália" = "AU", "México" = "MX", "Argentina" = "AR"
@@ -1139,14 +1192,14 @@ pais_para_iso <- c(
 
 # Função para buscar o código ISO do país de forma robusta
 # Normaliza o nome do país usando 'chave_texto' para ignorar maiúsculas/minúsculas e acentos
-iso_do_pais <- function(pais) {
-  tabela <- setNames(pais_para_iso, chave_texto(names(pais_para_iso)))
+iso_do_pais = function(pais) {
+  tabela = setNames(pais_para_iso, chave_texto(names(pais_para_iso)))
   unname(tabela[chave_texto(pais)])
 }
 
 # Cria um vetor de siglas oficiais válidas por país a partir do pacote ISOcodes
 # O formato final gerado na chave é "ISO_PAIS SIGLA_ESTADO" (Ex: "BR SP", "US CA")
-siglas_validas <- ISOcodes::ISO_3166_2 %>%
+siglas_validas = ISOcodes::ISO_3166_2 %>%
   filter(str_sub(Code, 1, 2) %in% pais_para_iso) %>%
   transmute(chave = paste(str_sub(Code, 1, 2), str_sub(Code, 4))) %>%
   pull(chave)
@@ -1155,7 +1208,7 @@ siglas_validas <- ISOcodes::ISO_3166_2 %>%
 # --- Dicionário de Equivalência de Nomes de Estados/Regiões ---
 
 # Tabela manual que mapeia múltiplas grafias ou variações de nomes para a sigla padrão correspondente
-dic_estados <- tribble(
+dic_estados = tribble(
   ~pais_iso, ~sigla, ~nomes,
   # Brasil
   "BR", "DF", "Federal District|Distrito Federal",
@@ -1321,10 +1374,10 @@ dic_estados <- tribble(
 # --- Transformação do Dicionário para Formato Longo ---
 
 # Divide a coluna 'nomes' onde houver o caractere "|" para separar cada variação gráfica
-partes <- strsplit(dic_estados$nomes, "|", fixed = TRUE)
+partes = strsplit(dic_estados$nomes, "|", fixed = TRUE)
 
 # Cria um novo data frame onde cada linha possui apenas uma grafia (formato longo)
-dic_long <- data.frame(
+dic_long = data.frame(
   pais_iso = rep(dic_estados$pais_iso, lengths(partes)),
   sigla    = rep(dic_estados$sigla, lengths(partes)),
   chave    = chave_texto(unlist(partes)), # Normaliza o nome da variação como chave de busca
@@ -1332,34 +1385,34 @@ dic_long <- data.frame(
 ) %>% distinct(pais_iso, chave, sigla)          # Remove duplicatas exatas
 
 # Validação de integridade: garante que uma mesma chave de texto não aponte para siglas diferentes no mesmo país
-conflitos <- dic_long %>% group_by(pais_iso, chave) %>% filter(n_distinct(sigla) > 1)
+conflitos = dic_long %>% group_by(pais_iso, chave) %>% filter(n_distinct(sigla) > 1)
 stopifnot(nrow(conflitos) == 0) # Interrompe a execução caso existam conflitos de mapeamento
 
 # Cria um vetor nomeado final para busca rápida. Ex: "BR distrito federal" = "DF"
-dic_vec <- setNames(dic_long$sigla, paste(dic_long$pais_iso, dic_long$chave))
+dic_vec = setNames(dic_long$sigla, paste(dic_long$pais_iso, dic_long$chave))
 ```
 
 ```{r}
 # --- Função Principal de Correção dos Estados ---
 
-corrigir_estados <- function(df) {
+corrigir_estados = function(df) {
   # Obtém os códigos ISO dos países presentes no dataframe informado
-  iso      <- iso_do_pais(df$pais)
+  iso      = iso_do_pais(df$pais)
   # Remove espaços extras do campo de estado
-  estado   <- str_squish(df$estado)
+  estado   = str_squish(df$estado)
   # Converte o texto do estado para maiúsculo (caso já seja uma sigla informada)
-  sigla_up <- str_to_upper(estado)
+  sigla_up = str_to_upper(estado)
 
   # Condição 1: Verifica se a entrada já é uma sigla válida cadastrada no ISOcodes
-  ja_sigla <- !is.na(estado) & !is.na(iso) & paste(iso, sigla_up) %in% siglas_validas
+  ja_sigla = !is.na(estado) & !is.na(iso) & paste(iso, sigla_up) %in% siglas_validas
   
   # Condição 2: Busca a sigla correspondente no dicionário estendido construído anteriormente
-  por_nome <- unname(dic_vec[paste(iso, chave_texto(estado))])
+  por_nome = unname(dic_vec[paste(iso, chave_texto(estado))])
 
   # Se já era uma sigla válida, mantém a sigla em maiúsculo; caso contrário, usa o mapeamento por nome
-  novo          <- ifelse(ja_sigla, sigla_up, por_nome)
+  novo          = ifelse(ja_sigla, sigla_up, por_nome)
   # Identifica registros com texto de estado que não conseguiram ser mapeados para nenhuma sigla
-  nao_resolvido <- !is.na(estado) & is.na(novo)
+  nao_resolvido = !is.na(estado) & is.na(novo)
 
   # Exibe no console um resumo das conversões realizadas
   cat("Estado - já era sigla:", sum(ja_sigla),
@@ -1375,6 +1428,10 @@ corrigir_estados <- function(df) {
   return(novo) # Nota: Adicionado o retorno do vetor transformado para completar a lógica da função
 }
 ```
+
+------------------------------------------------------------------------
+
+## Etapa 5 - Validação {#etapa-5---validação}
 
 ------------------------------------------------------------------------
 
