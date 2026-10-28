@@ -1,7 +1,19 @@
 ---
-- name: Preparando ambiente para o gerador
-  hosts: Servidores
+- name: Configurar Servidor de Aplicação (Gerador)
+  hosts: app
   become: true
+  vars:
+    pacotes:
+      - python3
+      - python3-pip
+      - python3-venv
+      - docker.io
+      - docker-compose-v2
+    app_name: "gerador"
+    app_tag: "latest"
+    container_name: "gerador"
+    port_host: 4040
+    port_container: 4040
 
   tasks:
     - name: Atualizar lista de pacotes
@@ -9,52 +21,95 @@
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Instalar Python e dependencias
+    - name: Instalar pacotes necessários
       ansible.builtin.apt:
-        name:
-          - python3
-          - python3-pip
-          - python3-venv
+        name: "{{ pacotes }}"
         state: present
+    
+    - name: Garantir docker ativo
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
 
-    - name: Criar diretorio do projeto
-      ansible.builtin.file:
-        path: /home/aluno/projeto
-        state: directory
-        owner: aluno
-        group: aluno
-        mode: '0755'
-
-    - name: Criar diretorio para os dados
-      ansible.builtin.file:
-        path: /home/aluno/projeto/dados
-        state: directory
-        owner: aluno
-        group: aluno
-        mode: '0755'
-
-    - name: Criar ambiente virtual do Python
-      command: python3 -m venv /home/aluno/projeto/.venv
-      args:
-        creates: /home/aluno/projeto/.venv/bin/python
+    - name: Adicionar usuário ao grupo docker
+      ansible.builtin.user:
+        name: aluno
+        groups: docker
+        append: true
 
     - name: Copiar gerador
       ansible.builtin.copy:
-        src: ../../gerador/
-        dest: /home/aluno/projeto/
+        src: "{{ playbook_dir }}/../../gerador/{{ item }}"
+        dest: "/opt/projeto/gerador/{{ item }}"
         owner: aluno
         group: aluno
-        mode: 0755
+        mode: 0644
+      loop:
+        - gerador/
+        - .dockerignore
+        - Dockerfile
+        - requirements.txt
 
-    - name: Instalar bibliotecas do gerador
-      ansible.builtin.pip:
-        requirements: /home/aluno/projeto/requirements.txt
-        virtualenv: /home/aluno/projeto/.venv
+    - name: Checar código de saída e ID do contêiner atual (se existir)
+      ansible.builtin.command:
+        cmd: "docker inspect --format='{{ '{{' }}.State.ExitCode{{ '}}' }} {{ '{{' }}.Image{{ '}}' }}' {{ container_name }}"
+      register: current_container
+      failed_when: false
+      changed_when: false
 
-    - name: Ajustar dono do ambiente virtual
+    - name: Buildar a imagem Docker
+      ansible.builtin.command:
+        cmd: "docker build -t {{ app_name }}:{{ app_tag }} ."
+        chdir: "/opt/projeto/gerador"
+      changed_when: false
+
+    - name: Obter ID da imagem gerada no build
+      ansible.builtin.command:
+        cmd: "docker inspect --format='{{ '{{' }}.Id{{ '}}' }}' {{ app_name }}:{{ app_tag }}"
+      register: built_image
+      changed_when: false
+
+    - name: Avaliar se o contêiner precisa ser recriado/executado
+      ansible.builtin.set_fact:
+        needs_restart: >-
+          {{
+            current_container.rc != 0 or
+            current_container.stdout.split()[0] != '0' or
+            (current_container.stdout.split() | length > 1 and current_container.stdout.split()[1] != built_image.stdout.strip())
+          }}
+
+    - name: Remover contêiner antigo se a imagem mudou ou ele não está rodando
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ container_name }}"
+      when: current_container.rc == 0 and needs_restart
+      changed_when: true
+
+    - name: Iniciar o contêiner
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name {{ container_name }}
+          -p {{ port_host }}:{{ port_container }}
+          --restart on-failure
+          {{ app_name }}:{{ app_tag }}
+      when: needs_restart
+      changed_when: true
+
+
+- name: Configurar Servidor de Dados
+  hosts: dados
+  become: true
+  tasks:
+    - name: Atualizar cache de pacotes no servidor de dados
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Garantir diretório de armazenamento de dados no servidor dedicado
       ansible.builtin.file:
-        path: /home/aluno/projeto/.venv
+        path: /opt/projeto/dados
         state: directory
         owner: aluno
         group: aluno
-        recurse: yes
+        mode: '0755'
