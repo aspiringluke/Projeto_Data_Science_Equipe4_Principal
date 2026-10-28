@@ -22,8 +22,8 @@ locals {
       mac    = "52:54:00:00:00:01"
     },
     "servidor-dados" = {
-      memory = 4096
-      vcpu   = 4
+      memory = 2048#4096
+      vcpu   = 2#4
       size   = 21474836480  # 20GB
       ip     = "192.168.122.11"
       mac    = "52:54:00:00:00:02"
