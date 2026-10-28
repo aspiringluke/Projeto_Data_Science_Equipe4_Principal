@@ -23,8 +23,8 @@ Opções:
 
 Opções de teste de conexão:
 
-  XX, --wait=N                  Espera N segundos entre verificações de conexão. Padrão: 3
-  XX, --retry=N                 Tenta a conexão N vezes. Padrão: 5
+  XX, --wait=N                  Espera N segundos entre verificações de conexão. Padrão: 5
+  XX, --retry=N                 Tenta a conexão N vezes. Padrão: 7
 
 (As opções curtas dos teste de conexão ainda não foram implementadas)
 "
@@ -101,8 +101,8 @@ for arg in "$@"; do
     fi
 done
 
-if [[ -z "${WAIT}" ]]; then WAIT=3; fi
-if [[ -z "${RETRY}" ]]; then RETRY=5; fi
+if [[ -z "${WAIT}" ]]; then WAIT=5; fi
+if [[ -z "${RETRY}" ]]; then RETRY=7; fi
 
 
 
