@@ -170,7 +170,7 @@ summary(sessoes)
 
 ## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
 
-Serão contabilizados a quantidade de observações vazias em cada dataset (Nesse caso, são observações das colunas que são "" e não NA)
+Serão contabilizados a quantidade de observações vazias em cada dataset
 
 Será contabilizado também a média de observações vazias
 
@@ -201,12 +201,12 @@ cat('\n')
 
 cat("Média geral de Valores ausentes:\n")
 soma_vazios = c(
-  sum(compras == ""),
-  sum(itens == ""),
-  sum(itens_compras == ""),
-  sum(jogadores == ""),
-  sum(partidas == ""),
-  sum(sessoes == "")
+  sum(compras == "", na.rm = TRUE),
+  sum(itens == "", na.rm = TRUE),
+  sum(itens_compras == "", na.rm = TRUE),
+  sum(jogadores == "", na.rm = TRUE),
+  sum(partidas == "", na.rm = TRUE),
+  sum(sessoes == "", na.rm = TRUE)
 )
 media_vazios = mean(soma_vazios)
 media_vazios
@@ -214,9 +214,9 @@ media_vazios
 
 É possível observar as seguintes situações:
 
-- Partidas é o dataset que possui o maior número de valores ausentes (30.255)
-- Itens_Compras é o dataset que possui o menor número de valores ausentes (0) — todos os valores desse dataset possuem dados com alguma coisa registrada
-- A média geral dos valores ausentes foi contabilizada em 8.478 observações. Isso mostra que 4 dos 6 datasets estão abaixo da média indicando uma proporção pequena de dados ausentes em geral
+- O dataset com o maior número de valores ausentes é aquele que concentra a maior quantidade de campos vazios, o que indica onde a limpeza será mais trabalhosa
+- O dataset com o menor número de valores ausentes é aquele que concentra a menor quantidade de campos vazios, podendo inclusive não ter nenhum, caso todos os campos tenham algum valor registrado
+- A média geral de valores ausentes serve como ponto de referência: datasets acima dela têm mais vazios do que o típico, e datasets abaixo têm menos, o que ajuda a priorizar quais merecem mais atenção na limpeza
 
 Serão contabilizados a quantidade de observações NA em cada dataset
 
