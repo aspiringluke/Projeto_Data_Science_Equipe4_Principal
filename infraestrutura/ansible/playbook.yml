@@ -40,7 +40,7 @@
 
     - name: Copiar gerador
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../../gerador/{{ item }}"
+        src: "{{ playbook_dir }}/../../gerador/{{ item }}"
         dest: "/opt/projeto/gerador/{{ item }}"
         owner: aluno
         group: aluno
