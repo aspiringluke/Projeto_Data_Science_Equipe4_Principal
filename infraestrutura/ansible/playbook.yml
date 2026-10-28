@@ -40,7 +40,7 @@
 
     - name: Copiar gerador
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../../gerador/{{ item }}"
+        src: "{{ playbook_dir }}/../../gerador/{{ item }}"
         dest: "/opt/projeto/gerador/{{ item }}"
         owner: aluno
         group: aluno
@@ -62,7 +62,7 @@
       ansible.builtin.command:
         cmd: "docker build -t {{ app_name }}:{{ app_tag }} ."
         chdir: "/opt/projeto/gerador"
-      changed_when: false  # O controle de mudança passa a ser a comparação de Hash
+      changed_when: false
 
     - name: Obter ID da imagem gerada no build
       ansible.builtin.command:
