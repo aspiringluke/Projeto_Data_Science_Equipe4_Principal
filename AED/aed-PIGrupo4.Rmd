@@ -245,6 +245,39 @@ cat("Valores NA — Sessões:\n")
 sum(is.na(sessoes))
 ```
 
+Este trecho faz parte de uma etapa de auditoria de qualidade dos dados. Ele procura valores de desconto que não fazem sentido na tabela `itens_compras` e os sinaliza, sem alterar nada. A regra de negócio é que o desconto está representado como uma proporção entre 0 e 1, em que 0 significa sem desconto e 1 significa 100% de desconto. Qualquer valor fora desse intervalo é inválido: um desconto negativo equivaleria a um acréscimo no preço, e um desconto acima de 1 significaria pagar menos do que zero.
+
+Para isso, o código segue três passos. Primeiro, o `filter` lista as linhas com desconto menor que 0 ou maior que 1, apenas para que você visualize os problemas, já que o resultado não é salvo. Depois, o `mutate` cria a coluna `desconto_invalido`, que recebe `TRUE` quando o desconto está fora do intervalo e `FALSE` caso contrário, mantendo intactos os valores originais de `desconto`. Por fim, o `View` permite conferir se a coluna foi criada corretamente, e o `sum` conta quantos registros são inválidos, já que o R trata `TRUE` como 1 e `FALSE` como 0.
+
+Antes de limpar ou transformar os dados, é preciso dimensionar o problema: quantas observações estão sujas, onde estão e se o volume sugere um erro isolado de digitação ou uma falha sistemática na origem. Este código responde a essas perguntas de forma rápida e rastreável.
+
+## Observação importante
+
+Corrigir o valor na hora pode parecer mais prático, mas marcar é mais seguro por vários motivos. Em primeiro lugar, não sabemos qual é o valor correto: um desconto de, por exemplo, `15` pode ser `0.15` (erro de escala), `1.5` (erro de digitação) ou simplesmente lixo, e substituí-lo por um palpite insere informação falsa no dataset, o que é pior do que o dado sujo, pois o erro passa a parecer legítimo.
+
+Além disso, sobrescrever o valor destrói a informação original e impede investigar a causa ou corrigir o problema na fonte. A flag preserva o dado e mantém a rastreabilidade e a reprodutibilidade da análise, pois quem a ler depois consegue ver exatamente quais linhas foram consideradas problemáticas e por quê.
+
+Marcar também adia a decisão de tratamento. Com as linhas sinalizadas, você pode escolher depois entre excluir, converter para `NA`, imputar ou corrigir por regra de negócio, comparando o impacto de cada estratégia sem refazer a detecção. E como alterações sem registro podem distorcer médias e totais sem que ninguém perceba, a flag evita esse viés silencioso, além de permitir filtrar facilmente os dados válidos ou os problemáticos.
+
+```{r Etapa 3 - Investigando Dados Sujos : Descontos Inválidos}
+
+# Filtrando o DataFrame de 'itens_compras' pela variável 'Desconto' para procurar descontos inválidos
+# Descontos inválidos são aqueles que o valor é menor que 0.0 ou maior que 1.0
+itens_compras |> filter(desconto < 0 | desconto > 1)
+
+# Criando novas colunas que marcam descontos inválidos por meio de booleanos
+itens_compras = itens_compras |> mutate(
+  desconto_invalido = desconto < 0 | desconto > 1
+)
+
+# Visualizando o DataFrame de itens_compras (confirmar a criação bem-sucedida da nova variável)
+View(itens_compras)
+
+# Contabilizando o número de observações com descontos inválidos
+cat("Quantidade de descontos inválidos:\n")
+sum(itens_compras$desconto_invalido, na.rm = TRUE)
+```
+
 ------------------------------------------------------------------------
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
