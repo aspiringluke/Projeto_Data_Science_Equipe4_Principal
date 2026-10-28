@@ -12,9 +12,23 @@ provider "libvirt" {
 }
 
 locals {
-  # o número de VMs vai mudar. Foi temporariamente reduzido por causa do armazenamento
-  # talvez seja sensato criar algumas VMs manualmente pra ter tamanhos de máquina diferentes?
-  vm_count = 1
+  # Mapeamento com os nomes das máquinas, configurações de hardware e rede
+  vms = {
+    "servidor-app" = {
+      memory = 2048
+      vcpu   = 2
+      size   = 10737418240  # 10GB
+      ip     = "192.168.122.10"
+      mac    = "52:54:00:00:00:01"
+    },
+    "servidor-dados" = {
+      memory = 4096
+      vcpu   = 4
+      size   = 21474836480  # 20GB
+      ip     = "192.168.122.11"
+      mac    = "52:54:00:00:00:02"
+    }
+  }
 }
 
 resource "libvirt_volume" "ubuntu_base" {
@@ -25,50 +39,46 @@ resource "libvirt_volume" "ubuntu_base" {
 }
 
 resource "libvirt_volume" "vm_disk" {
-  count = local.vm_count
+  for_each = local.vms
 
-  name   = "devops_${count.index + 1}.qcow2"
+  name   = "${each.key}.qcow2"
   pool   = "default"
   format = "qcow2"
-  size = 10737418240    # 10GB
-  # size = 21474836480  # 20GB
-  # size = 32212254720  # 30GB
+  size   = each.value.size
 
   base_volume_id = libvirt_volume.ubuntu_base.id
 }
 
 resource "libvirt_cloudinit_disk" "init" {
-  count = local.vm_count
+  for_each = local.vms
 
-  name = "devops_${count.index + 1}-cloudinit.iso"
+  name = "${each.key}-cloudinit.iso"
   pool = "default"
 
   user_data = templatefile("${path.module}/cloud_init.cfg", {
-    hostname = "devops-${count.index + 1}"
+    hostname = each.key
     ssh_key  = trimspace(file(pathexpand("~/.ssh/devops_lab.pub")))
   })
 }
 
 resource "libvirt_domain" "vm" {
-  count = local.vm_count
+  for_each = local.vms
 
-  name   = "devops-${count.index + 1}"
-  memory = 2048
-  vcpu   = 2
+  name   = each.key
+  memory = each.value.memory
+  vcpu   = each.value.vcpu
 
-  cloudinit = libvirt_cloudinit_disk.init[count.index].id
+  cloudinit = libvirt_cloudinit_disk.init[each.key].id
 
   network_interface {
-    network_name = "default"
-    # ip fixo pra ficar mais fácil de trabalhar
-    # com o ansible
-    addresses    = ["192.168.122.${count.index + 10}"]
-    mac = "52:54:00:00:00:0${count.index+1}"
+    network_name   = "default"
+    addresses      = [each.value.ip]
+    mac            = each.value.mac
     wait_for_lease = true
   }
 
   disk {
-    volume_id = libvirt_volume.vm_disk[count.index].id
+    volume_id = libvirt_volume.vm_disk[each.key].id
   }
 
   console {
@@ -79,8 +89,8 @@ resource "libvirt_domain" "vm" {
 }
 
 output "ips" {
-  value = [
-    for vm in libvirt_domain.vm :
-    try(vm.network_interface[0].addresses[0], null)
-  ]
+  value = {
+    for key, vm in libvirt_domain.vm :
+    key => try(vm.network_interface[0].addresses[0], null)
+  }
 }
