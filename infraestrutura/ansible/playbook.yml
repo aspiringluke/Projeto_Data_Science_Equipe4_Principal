@@ -1,6 +1,6 @@
 ---
-- name: Preparando ambiente para o gerador
-  hosts: Servidores
+- name: Configurar Servidor de Aplicação (Gerador)
+  hosts: app
   become: true
   vars:
     pacotes:
@@ -40,7 +40,7 @@
 
     - name: Copiar gerador
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../gerador/{{ item }}"
+        src: "{{ playbook_dir }}/../../../gerador/{{ item }}"
         dest: "/opt/projeto/gerador/{{ item }}"
         owner: aluno
         group: aluno
@@ -95,3 +95,21 @@
           {{ app_name }}:{{ app_tag }}
       when: needs_restart
       changed_when: true
+
+
+- name: Configurar Servidor de Dados
+  hosts: dados
+  become: true
+  tasks:
+    - name: Atualizar cache de pacotes no servidor de dados
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Garantir diretório de armazenamento de dados no servidor dedicado
+      ansible.builtin.file:
+        path: /opt/projeto/dados
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0755'
