@@ -1,6 +1,6 @@
 ---
 - name: Preparando ambiente para o gerador
-  hosts: Servidores
+  hosts: app
   become: true
   vars:
     pacotes:
@@ -51,9 +51,9 @@
         - Dockerfile
         - requirements.txt
 
-    - name: Checar ID e status do contêiner atual (se existir)
+    - name: Checar código de saída e ID do contêiner atual (se existir)
       ansible.builtin.command:
-        cmd: "docker inspect --format='{{ '{{' }}.State.Running{{ '}}' }} {{ '{{' }}.Image{{ '}}' }}' {{ container_name }}"
+        cmd: "docker inspect --format='{{ '{{' }}.State.ExitCode{{ '}}' }} {{ '{{' }}.Image{{ '}}' }}' {{ container_name }}"
       register: current_container
       failed_when: false
       changed_when: false
@@ -70,12 +70,12 @@
       register: built_image
       changed_when: false
 
-    - name: Avaliar se o contêiner precisa ser recriado/iniciado
+    - name: Avaliar se o contêiner precisa ser recriado/executado
       ansible.builtin.set_fact:
         needs_restart: >-
           {{
             current_container.rc != 0 or
-            'true' not in current_container.stdout or
+            current_container.stdout.split()[0] != '0' or
             (current_container.stdout.split() | length > 1 and current_container.stdout.split()[1] != built_image.stdout.strip())
           }}
 
