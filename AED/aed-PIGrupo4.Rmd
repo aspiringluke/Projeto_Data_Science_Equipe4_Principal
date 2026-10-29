@@ -58,12 +58,56 @@ library(lubridate)
 library(stringr)
 library(stringi)
 
-compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/compras_20261027_183232_937283.csv')
-itens = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/itens_20261027_183245_781923.csv')
-itens_compras = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/itens_compra_20261027_183245_783041.csv')
-jogadores = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/jogadores_10000_20261027_183200_656635.csv')
-partidas = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/partidas_20261027_183208_618956.csv')
-sessoes = read.csv('C:/Users/Gabriel/Documents/RepoWeb/Projeto_Data_Science_Equipe4_Principal/gerador/gerador/output/sujos/sessoes_20261027_183201_326045.csv')
+# 1. Detectar SO e definir base
+sistema = Sys.info()[["sysname"]]
+
+if (sistema == "Windows"){
+  base_repo = "C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI"
+} else if (sistema == "Linux"){
+  base_repo = "/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main"
+} else {
+  stop("Sistema operacional não suportado: ", sistema)
+}
+
+# 2. Verificar pasta
+pasta_dados = file.path(base_repo, "gerador", "output", "sujos")
+
+if (!dir.exists(pasta_dados)){
+  stop("A pasta não existe: ", pasta_dados)
+}
+
+# 3. Função para achar o CSV mais recente
+encontrar_csv = function(pasta, padrao){
+  arquivos = list.files(pasta, pattern = padrao, full.names = TRUE)
+  
+  if (length(arquivos) == 0){
+    stop("Nenhum arquivo encontrado com o padrão '", padrao, "' em: ", pasta)
+  }
+
+  # Ordena pelo nome (o timestamp está no nome, então ordem alfabética = cronológica)
+  sort(arquivos, decreasing = TRUE)[1]
+}
+
+# 4. Padrões e importação
+padroes = c(
+  compras       = "^compras_[0-9]{8}_.*\\.csv$",
+  itens         = "^itens_[0-9]{8}_.*\\.csv$",
+  itens_compras = "^itens_compra_[0-9]{8}_.*\\.csv$",
+  jogadores     = "^jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
+  partidas      = "^partidas_[0-9]{8}_.*\\.csv$",
+  sessoes       = "^sessoes_[0-9]{8}_.*\\.csv$"
+)
+
+for (nome in names(padroes)){
+  caminho = encontrar_csv(pasta_dados, padroes[[nome]])
+  
+  if (!file.exists(caminho)){
+    stop("Arquivo não encontrado: ", caminho)
+  }
+  
+  assign(nome, read.csv(caminho))
+  message("Importado: ", basename(caminho), " -> ", nome)
+}
 ```
 
 ------------------------------------------------------------------------
@@ -170,7 +214,7 @@ summary(sessoes)
 
 ## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
 
-Serão contabilizados a quantidade de observações vazias em cada dataset
+Serão contabilizados a quantidade de observações vazias em cada dataset (Nesse caso, são observações das colunas que são "" e não NA)
 
 Será contabilizado também a média de observações vazias
 
@@ -201,12 +245,12 @@ cat('\n')
 
 cat("Média geral de Valores ausentes:\n")
 soma_vazios = c(
-  sum(compras == "", na.rm = TRUE),
-  sum(itens == "", na.rm = TRUE),
-  sum(itens_compras == "", na.rm = TRUE),
-  sum(jogadores == "", na.rm = TRUE),
-  sum(partidas == "", na.rm = TRUE),
-  sum(sessoes == "", na.rm = TRUE)
+  sum(compras == ""),
+  sum(itens == ""),
+  sum(itens_compras == ""),
+  sum(jogadores == ""),
+  sum(partidas == ""),
+  sum(sessoes == "")
 )
 media_vazios = mean(soma_vazios)
 media_vazios
@@ -214,13 +258,13 @@ media_vazios
 
 É possível observar as seguintes situações:
 
-- O dataset com o maior número de valores ausentes é aquele que concentra a maior quantidade de campos vazios, o que indica onde a limpeza será mais trabalhosa
-- O dataset com o menor número de valores ausentes é aquele que concentra a menor quantidade de campos vazios, podendo inclusive não ter nenhum, caso todos os campos tenham algum valor registrado
-- A média geral de valores ausentes serve como ponto de referência: datasets acima dela têm mais vazios do que o típico, e datasets abaixo têm menos, o que ajuda a priorizar quais merecem mais atenção na limpeza
+- Partidas é o dataset que possui o maior número de valores ausentes (30.255)
+- Itens_Compras é o dataset que possui o menor número de valores ausentes (0) — todos os valores desse dataset possuem dados com alguma coisa registrada
+- A média geral dos valores ausentes foi contabilizada em 8.478 observações. Isso mostra que 4 dos 6 datasets estão abaixo da média indicando uma proporção pequena de dados ausentes em geral
 
 Serão contabilizados a quantidade de observações NA em cada dataset
 
-```{r Etapa 3 - Investigando Dados Sujos : contabilização de NA}
+```{r}
 cat("Valores NA — Compras:\n")
 sum(is.na(compras))
 cat('\n')
@@ -245,44 +289,11 @@ cat("Valores NA — Sessões:\n")
 sum(is.na(sessoes))
 ```
 
-Este trecho faz parte de uma etapa de auditoria de qualidade dos dados. Ele procura valores de desconto que não fazem sentido na tabela `itens_compras` e os sinaliza, sem alterar nada. A regra de negócio é que o desconto está representado como uma proporção entre 0 e 1, em que 0 significa sem desconto e 1 significa 100% de desconto. Qualquer valor fora desse intervalo é inválido: um desconto negativo equivaleria a um acréscimo no preço, e um desconto acima de 1 significaria pagar menos do que zero.
-
-Para isso, o código segue três passos. Primeiro, o `filter` lista as linhas com desconto menor que 0 ou maior que 1, apenas para que você visualize os problemas, já que o resultado não é salvo. Depois, o `mutate` cria a coluna `desconto_invalido`, que recebe `TRUE` quando o desconto está fora do intervalo e `FALSE` caso contrário, mantendo intactos os valores originais de `desconto`. Por fim, o `View` permite conferir se a coluna foi criada corretamente, e o `sum` conta quantos registros são inválidos, já que o R trata `TRUE` como 1 e `FALSE` como 0.
-
-Antes de limpar ou transformar os dados, é preciso dimensionar o problema: quantas observações estão sujas, onde estão e se o volume sugere um erro isolado de digitação ou uma falha sistemática na origem. Este código responde a essas perguntas de forma rápida e rastreável.
-
-## Observação importante
-
-Corrigir o valor na hora pode parecer mais prático, mas marcar é mais seguro por vários motivos. Em primeiro lugar, não sabemos qual é o valor correto: um desconto de, por exemplo, `15` pode ser `0.15` (erro de escala), `1.5` (erro de digitação) ou simplesmente lixo, e substituí-lo por um palpite insere informação falsa no dataset, o que é pior do que o dado sujo, pois o erro passa a parecer legítimo.
-
-Além disso, sobrescrever o valor destrói a informação original e impede investigar a causa ou corrigir o problema na fonte. A flag preserva o dado e mantém a rastreabilidade e a reprodutibilidade da análise, pois quem a ler depois consegue ver exatamente quais linhas foram consideradas problemáticas e por quê.
-
-Marcar também adia a decisão de tratamento. Com as linhas sinalizadas, você pode escolher depois entre excluir, converter para `NA`, imputar ou corrigir por regra de negócio, comparando o impacto de cada estratégia sem refazer a detecção. E como alterações sem registro podem distorcer médias e totais sem que ninguém perceba, a flag evita esse viés silencioso, além de permitir filtrar facilmente os dados válidos ou os problemáticos.
-
-```{r Etapa 3 - Investigando Dados Sujos : Descontos Inválidos}
-
-# Filtrando o DataFrame de 'itens_compras' pela variável 'Desconto' para procurar descontos inválidos
-# Descontos inválidos são aqueles que o valor é menor que 0.0 ou maior que 1.0
-itens_compras |> filter(desconto < 0 | desconto > 1)
-
-# Criando novas colunas que marcam descontos inválidos por meio de booleanos
-itens_compras = itens_compras |> mutate(
-  desconto_invalido = desconto < 0 | desconto > 1
-)
-
-# Visualizando o DataFrame de itens_compras (confirmar a criação bem-sucedida da nova variável)
-View(itens_compras)
-
-# Contabilizando o número de observações com descontos inválidos
-cat("Quantidade de descontos inválidos:\n")
-sum(itens_compras$desconto_invalido, na.rm = TRUE)
-```
-
 ------------------------------------------------------------------------
 
 ## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
 
-### 1. Padronização de valores ausentes
+### 1. Padronizaçãio de valores ausentes
 
 Nesta etapa, foi criada a função `limpa_nulos()`, responsável por padronizar as diferentes representações de valores ausentes encontradas nos datasets. Os valores representados por strings vazias (""), "NA" e "NULL" são substituídos pelo valor especial NA do R, que indica a ausência de um dado.
 
@@ -290,7 +301,7 @@ A função utiliza `lapply()` para percorrer as colunas do dataset e aplicar a s
 
 Essa padronização facilita as etapas seguintes de limpeza e análise, pois permite tratar os valores ausentes de maneira consistente. Por isso, a função é executada antes das demais transformações em todos os datasets utilizados.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Padronização de Valores Ausentes}
+```{r}
 limpa_nulos = function(df) {
   df[] = lapply(df, function(x) {
     x[x == "" | x == "NA" | x == "NULL"] = NA
@@ -309,7 +320,7 @@ sessoes_nulos       = limpa_nulos(sessoes)
 
 ```
 
-### 2. Remoção de registros duplicados & Contabilização dos registros duplicados removido
+### 2.  Remoção de registros duplicados & Contabilização dos registros duplicados removido
 
 Após a padronização dos valores ausentes, foi utilizada a função `distinct()`, do pacote **dplyr**, para remover registros duplicados de cada dataset.
 
@@ -325,7 +336,7 @@ A função `cat()` exibe uma mensagem identificando o resultado, enquanto `print
 
 Essa verificação permite avaliar o volume de duplicidades encontrado em cada conjunto de dados e documentar os resultados da transformação realizada.
 
-```{r Etapa 4 - Transformação dos Dados Sujos: Remoção de Registros Duplicados & Contabilização dos registros duplicados removido}
+```{r}
 compras_limpas       = compras_nulos       %>% distinct()
 itens_limpos         = itens_nulos         %>% distinct()
 itens_compras_limpos = itens_compras_nulos %>% distinct()
@@ -342,7 +353,7 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 ```
 
-### 3. Padronização das datas e conversão para tipos apropriados
+### 3.  Padronização das datas e conversão para tipos apropriados
 
 Nesta etapa, foram criadas funções auxiliares para interpretar datas registradas em diferentes formatos e convertê-las para tipos reconhecidos pelo R. Essa transformação é importante porque os dados originais podem apresentar formatos distintos, como **AAAA-MM-DD**, **DD/MM/AAAA** e **MM/DD/AAAA**, dificultando a realização de cálculos e comparações temporais.
 
@@ -354,7 +365,7 @@ A função `resolve_data()` é responsável por escolher a interpretação mais 
 
 Por fim, a função `dif_min()` calcula a diferença absoluta entre duas datas em minutos. Esse cálculo é utilizado como critério auxiliar para comparar as possíveis interpretações das datas de início e término de partidas e sessões.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Padronização das datas e conversão para tipos apropriados}
+```{r}
 candidatas = function(x, hora = FALSE, tz = "UTC") {
   x = str_squish(x)
   f = if (hora) " HMS" else ""
@@ -369,24 +380,24 @@ candidatas = function(x, hora = FALSE, tz = "UTC") {
 }
 
 resolve_data = function(cand, erro_dmy = NULL, erro_mdy = NULL) {
-  n = length(cand$iso)
+  n = length(cand\$iso)
   if (is.null(erro_dmy)) erro_dmy = rep(NA_real_, n)
   if (is.null(erro_mdy)) erro_mdy = rep(NA_real_, n)
 
-  ambigua = is.na(cand$iso) & !is.na(cand$dmy) & !is.na(cand$mdy) & cand$dmy != cand$mdy
+  ambigua = is.na(cand\$iso) & !is.na(cand\(dmy) & !is.na(cand\)mdy) & cand\(dmy != cand\)mdy
   sem_ref = ambigua & (is.na(erro_dmy) | is.na(erro_mdy))
   cat("Datas ambíguas (dd/mm x mm/dd):", sum(ambigua, na.rm = TRUE),
       "| sem referência (assumido dd/mm):", sum(sem_ref, na.rm = TRUE), "\n")
 
   mdy_melhor = (erro_mdy < erro_dmy) %in% TRUE
-  usa_mdy = !is.na(cand$mdy) & (is.na(cand$dmy) | mdy_melhor)
-  coalesce(cand$iso, if_else(usa_mdy, cand$mdy, cand$dmy))
+  usa_mdy = !is.na(cand\(mdy) & (is.na(cand\)dmy) | mdy_melhor)
+  coalesce(cand\$iso, if_else(usa_mdy, cand\(mdy, cand\)dmy))
 }
 
 dif_min  = function(a, b) abs(as.numeric(difftime(a, b, units = "mins")))
 ```
 
-### 4. Aplicação da padronização das datas nos datasets
+### 4.  Aplicação da padronização das datas nos datasets
 
 Após a definição das funções auxiliares, elas são aplicadas às colunas de data dos datasets de compras, jogadores, partidas e sessões.
 
@@ -396,44 +407,44 @@ Já nos datasets de partidas e sessões, as datas de início e término são int
 
 A utilização de `mutate()` permite substituir as colunas originais pelos valores padronizados, mantendo as demais informações dos datasets. Dessa maneira, os campos temporais passam a utilizar tipos apropriados para análises cronológicas, cálculos de duração e verificações de consistência.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização das datas nos datasets}
+```{r}
 # --- COMPRAS ---
-cand_compra = candidatas(compras_limpas$data_compra, hora = TRUE)
+cand_compra = candidatas(compras_limpas\$data_compra, hora = TRUE)
 compras_limpas = compras_limpas %>%
   mutate(data_compra = resolve_data(cand_compra))
 
 # --- JOGADORES ---
-cand_nasc = candidatas(jogadores_limpos$data_nascimento, hora = FALSE)
-cand_criacao = candidatas(jogadores_limpos$data_criacao_conta, hora = FALSE)
+cand_nasc = candidatas(jogadores_limpos\$data_nascimento, hora = FALSE)
+cand_criacao = candidatas(jogadores_limpos\$data_criacao_conta, hora = FALSE)
 
 jogadores_limpos = jogadores_limpos %>%
   mutate(data_nascimento = resolve_data(cand_nasc),
          data_criacao_conta = resolve_data(cand_criacao))
 
 # --- PARTIDAS ---
-cand_ini_partida = candidatas(partidas_limpas$data_inicio_partida, hora = TRUE)
-cand_fim_partida = candidatas(partidas_limpas$data_fim_partida, hora = TRUE)
+cand_ini_partida = candidatas(partidas_limpas\$data_inicio_partida, hora = TRUE)
+cand_fim_partida = candidatas(partidas_limpas\$data_fim_partida, hora = TRUE)
 
-erro_dmy_partida = dif_min(cand_ini_partida$dmy, cand_fim_partida$dmy)
-erro_mdy_partida = dif_min(cand_ini_partida$mdy, cand_fim_partida$mdy)
+erro_dmy_partida = dif_min(cand_ini_partida\(dmy, cand_fim_partida\)dmy)
+erro_mdy_partida = dif_min(cand_ini_partida\(mdy, cand_fim_partida\)mdy)
 
 partidas_limpas = partidas_limpas %>%
   mutate(data_inicio_partida = resolve_data(cand_ini_partida, erro_dmy_partida, erro_mdy_partida),
          data_fim_partida    = resolve_data(cand_fim_partida, erro_dmy_partida, erro_mdy_partida))
 
 # --- SESSOES ---
-cand_ini_sessao = candidatas(sessoes_limpas$data_inicio_sessao, hora = TRUE)
-cand_fim_sessao = candidatas(sessoes_limpas$data_fim_sessao, hora = TRUE)
+cand_ini_sessao = candidatas(sessoes_limpas\$data_inicio_sessao, hora = TRUE)
+cand_fim_sessao = candidatas(sessoes_limpas\$data_fim_sessao, hora = TRUE)
 
-erro_dmy_sessao = dif_min(cand_ini_sessao$dmy, cand_fim_sessao$dmy)
-erro_mdy_sessao = dif_min(cand_ini_sessao$mdy, cand_fim_sessao$mdy)
+erro_dmy_sessao = dif_min(cand_ini_sessao\(dmy, cand_fim_sessao\)dmy)
+erro_mdy_sessao = dif_min(cand_ini_sessao\(mdy, cand_fim_sessao\)mdy)
 
 sessoes_limpas = sessoes_limpas %>%
   mutate(data_inicio_sessao = resolve_data(cand_ini_sessao, erro_dmy_sessao, erro_mdy_sessao),
          data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
 ```
 
-### 5. Criação de funções para padronização de textos e números
+### 5.  Criação de funções para padronização de textos e números
 
 Nesta etapa, foram desenvolvidas funções auxiliares para uniformizar valores textuais e converter representações numéricas armazenadas como texto.
 
@@ -443,7 +454,7 @@ A função `padronizar_categoria()` utiliza essa chave normalizada para comparar
 
 Por fim, a função `converter_numero()` converte valores textuais em números. Antes da conversão, os valores são transformados em caracteres, têm seus espaços excedentes removidos e as vírgulas decimais são substituídas por pontos. Em seguida, **as.numeric()** realiza a conversão para o tipo numérico, permitindo que esses valores sejam utilizados em cálculos matemáticos e análises estatísticas.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Criação de funções para padronização de textos e números}
+```{r}
 chave_texto = function(x) {
   x %>% as.character() %>% str_squish() %>% stri_trans_general("Latin-ASCII") %>% str_to_lower()
 }
@@ -463,7 +474,7 @@ converter_numero = function(x) {
 }
 ```
 
-### 6. Aplicação da padronização de textos e categorias
+### 6.  Aplicação da padronização de textos e categorias
 
 Após a definição das funções auxiliares, são estabelecidas listas de categorias válidas para os gêneros de jogos e as plataformas utilizadas nas sessões.
 
@@ -473,7 +484,7 @@ Essas listas funcionam como referências para a padronização dos dados. Em seg
 
 Com isso, valores equivalentes passam a utilizar uma representação uniforme, reduzindo inconsistências causadas por diferenças de escrita. Os valores que não correspondem às categorias predefinidas são preservados e sinalizados para análise posterior, evitando a exclusão automática de informações potencialmente relevantes.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias I}
+```{r}
 generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
                           "Esportes", "MOBA", "Simulação", "Luta", "Survival")
 plataformas_validas  = c("PC", "PlayStation", "Xbox", "Mobile")
@@ -485,14 +496,14 @@ sessoes_limpas = sessoes_limpas %>%
   )
 ```
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias II}
+```{r}
 resultados_validos = c("Vitória", "Derrota", "Empate")
 
 partidas_limpas = partidas_limpas %>%
   mutate(resultado = padronizar_categoria(resultado, resultados_validos, "partidas$resultado"))
 ```
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias III}
+```{r}
 categorias_validas = c("Skin", "Passe de batalha", "Moeda virtual", "Personagem", "Cosmético",
                         "DLC", "Boost", "Pacote", "Emote", "Acessório")
 raridades_validas  = c("Comum", "Incomum", "Rara", "Épica", "Lendária")
@@ -530,7 +541,7 @@ itens_limpos = itens_limpos %>%
   )
 ```
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias IV}
+```{r}
 itens_compras_limpos = itens_compras_limpos %>%
   mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
 ```
@@ -539,7 +550,7 @@ itens_compras_limpos = itens_compras_limpos %>%
 
 Em relação a `cidade`, quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
 
-```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias V}
+```{r}
 # --- Vetores de Validação e Padronização ---
 
 # Lista de países permitidos para validação posterior
@@ -598,14 +609,15 @@ jogadores_limpos = jogadores_limpos %>%
     pais = padronizar_categoria(pais, paises_validos, "jogadores$pais")
   ) %>% 
   select(-chave_cidade)                           # Remove a coluna de chave temporária
+Use o código com cuidado.
 
 ```
 
-### Etapa 4 - Correção: Funções base
+### Funções base
 
 `datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`, `dmy` e `mdy`), mas converte só as linhas que casam com cada formato e usa `fast_strptime()` com formato fixo.
 
-```{r Funções base}
+```{r}
 
 # Função que tenta interpretar uma data em três formatos diferentes:
 # ISO: 2024-05-03
@@ -747,11 +759,11 @@ eh_ambigua = function(cand) {
 
 ------------------------------------------------------------------------
 
-### Etapa 4 - Correções: Sessões e Partidas: referência = `duracao_minutos`
+### Sessões e partidas: referência = `duracao_minutos`
 
 Como só uma das duas datas da linha é suja, a outra fica em ISO. A função testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início × as três do fim) e escolhe a que bate com `duracao_minutos`.
 
-```{r Sessões e Partidas}
+```{r}
 
 # Tenta encontrar a combinação de datas de início e fim
 # cuja diferença corresponda à duração informada em minutos.
@@ -906,11 +918,11 @@ corrigir_datas_partidas = function(partidas) {
 
 ------------------------------------------------------------------------
 
-### Etapa 4 - Correções: Compras: `corrigir_datas` + intervalo da sessão
+### Compras: `corrigir_datas` + intervalo da sessão
 
 A compra sempre acontece dentro do intervalo da sua sessão. Para datas ambíguas, vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas couberem, assume dd/mm.
 
-```{r Compras}
+```{r}
 
 # Calcula a data correta de cada compra utilizando o intervalo
 # da sessão à qual a compra está associada.
@@ -982,7 +994,7 @@ corrigir_datas_compras = function(compras, sessoes) {
 
 ------------------------------------------------------------------------
 
-### Etapa 4 - Correções: Jogadores
+### Jogadores
 
 **`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
 
@@ -1197,9 +1209,9 @@ corrigir_datas_jogadores = function(
 
 ------------------------------------------------------------------------
 
-### Etapa 4 - Correções: Aplicação
+### Aplicação
 
-```{r Aplicação das Correções}
+```{r}
 sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
 partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
 compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
@@ -1212,7 +1224,8 @@ Para cada linha, usando o `pais` como chave:
 2.  Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
 3.  Se não achar, mantém o texto e lista no console para completar o dicionário.
 
-```{r Configuração do Mapeamento e Validação de Países/Estados}
+```{r}
+# --- Configuração do Mapeamento e Validação de Países/Estados ---
 
 # Vetor de correspondência: Nome do país -> Código ISO de 2 letras
 pais_para_iso = c(
@@ -1423,7 +1436,8 @@ stopifnot(nrow(conflitos) == 0) # Interrompe a execução caso existam conflitos
 dic_vec = setNames(dic_long$sigla, paste(dic_long$pais_iso, dic_long$chave))
 ```
 
-```{r Função Principal de Correção dos Estados}
+```{r}
+# --- Função Principal de Correção dos Estados ---
 
 corrigir_estados = function(df) {
   # Obtém os códigos ISO dos países presentes no dataframe informado
