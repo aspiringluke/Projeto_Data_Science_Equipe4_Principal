@@ -61,16 +61,18 @@ library(stringi)
 # 1. Detectar SO e definir base
 sistema = Sys.info()[["sysname"]]
 
-if (sistema == "Windows"){
-  base_repo = "C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI"
-} else if (sistema == "Linux"){
-  base_repo = "/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main"
-} else {
-  stop("Sistema operacional não suportado: ", sistema)
-}
+# if (sistema == "Windows"){
+#   base_repo = "C:/Users/Gabriel/Documents/RepoWeb/Gerador-de-dados-PI"
+# } else if (sistema == "Linux"){
+#   base_repo = "/home/aluno/Downloads/Gerador_de_Dados_Equipe4-main"
+# } else {
+#   stop("Sistema operacional não suportado: ", sistema)
+# }
+
+base_repo = here()
 
 # 2. Verificar pasta
-pasta_dados = file.path(base_repo, "gerador", "output", "sujos")
+pasta_dados = normalizePath(file.path(base_repo, "..", "gerador", "gerador", "output", "sujos"), mustWork = FALSE)
 
 if (!dir.exists(pasta_dados)){
   stop("A pasta não existe: ", pasta_dados)
