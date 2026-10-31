@@ -1237,15 +1237,6 @@ corrigir_datas_jogadores = function(
 
 ------------------------------------------------------------------------
 
-### Etapa 4 - Correções: Aplicação
-
-```{r Aplicação das Correções}
-sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
-partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
-compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
-jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
-```
-
 Para cada linha, usando o `pais` como chave:
 
 1.  Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
