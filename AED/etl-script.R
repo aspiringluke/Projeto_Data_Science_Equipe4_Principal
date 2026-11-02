@@ -13,10 +13,6 @@
 # 0. CONFIGURAÇÃO E PACOTES
 # ------------------------------------------------------------------------------
 
-# TRUE  = imprime a análise exploratória (head, names, str, summary, ausentes, NA)
-# FALSE = executa apenas o ETL
-EXPLORAR = FALSE
-
 pacotes = c("dplyr", "lubridate", "stringr", "stringi", "ggplot2", "here", "ISOcodes")
 # Biblioteca pessoal (evita erro de permissão em /usr/local/lib/R/site-library)
 lib_pessoal = Sys.getenv("R_LIBS_USER")
@@ -80,72 +76,10 @@ for (nome in names(padroes)){
   message("Importado: ", basename(caminho), " -> ", nome)
 }
 
-
 # ------------------------------------------------------------------------------
-# 2. ANÁLISE INICIAL E INVESTIGAÇÃO DE DADOS SUJOS (opcional: EXPLORAR = TRUE)
+# 2. TRANSFORM
 # ------------------------------------------------------------------------------
-
-if (EXPLORAR) {
-
-  datasets = list(Compras = compras, Itens = itens, Itens_Compras = itens_compras,
-                  Jogadores = jogadores, Partidas = partidas, Sessões = sessoes)
-
-  # head
-  for (n in names(datasets)) { cat(n, ":\n"); print(head(datasets[[n]])); cat("\n") }
-
-  # names
-  for (n in names(datasets)) { cat(n, ":\n"); print(names(datasets[[n]])); cat("\n") }
-
-  # str
-  for (n in names(datasets)) { cat(n, ":\n"); str(datasets[[n]]); cat("\n") }
-
-  # summary
-  for (n in names(datasets)) { cat(n, ":\n"); print(summary(datasets[[n]])); cat("\n") }
-
-  # Valores ausentes (strings vazias)
-  for (n in names(datasets)) {
-    cat("Valores ausentes -", n, ":\n")
-    print(sum(datasets[[n]] == "", na.rm = TRUE))
-    cat("\n")
-  }
-
-  cat("Média geral de Valores ausentes:\n")
-  soma_vazios = c(
-    sum(compras == "", na.rm = TRUE),
-    sum(itens == "", na.rm = TRUE),
-    sum(itens_compras == "", na.rm = TRUE),
-    sum(jogadores == "", na.rm = TRUE),
-    sum(partidas == "", na.rm = TRUE),
-    sum(sessoes == "", na.rm = TRUE)
-  )
-  media_vazios = mean(soma_vazios)
-  print(media_vazios)
-
-  # Valores NA
-  for (n in names(datasets)) {
-    cat("Valores NA -", n, ":\n")
-    print(sum(is.na(datasets[[n]])))
-    cat("\n")
-  }
-
-  # Descontos inválidos (apenas visualização das linhas problemáticas)
-  print(itens_compras |> filter(desconto < 0 | desconto > 1))
-}
-
-# Auditoria de descontos: sinaliza (não corrige) valores fora do intervalo [0, 1]
-itens_compras = itens_compras |> mutate(
-  desconto_invalido = desconto < 0 | desconto > 1
-)
-
-cat("Quantidade de descontos inválidos (bruto):\n")
-print(sum(itens_compras$desconto_invalido, na.rm = TRUE))
-
-
-# ------------------------------------------------------------------------------
-# 3. TRANSFORM
-# ------------------------------------------------------------------------------
-
-# 3.1 Padronização de valores ausentes -----------------------------------------
+# 2.1 Padronização de valores ausentes -----------------------------------------
 limpa_nulos = function(df) {
   df[] = lapply(df, function(x) {
     x[x == "" | x == "NA" | x == "NULL"] = NA
@@ -162,7 +96,7 @@ partidas_nulos      = limpa_nulos(partidas)
 sessoes_nulos       = limpa_nulos(sessoes)
 
 
-# 3.2 Remoção de registros duplicados ------------------------------------------
+# 2.2 Remoção de registros duplicados ------------------------------------------
 compras_limpas       = compras_nulos       %>% distinct()
 itens_limpos         = itens_nulos         %>% distinct()
 itens_compras_limpos = itens_compras_nulos %>% distinct()
@@ -179,7 +113,7 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
         sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
 
 
-# 3.3 Funções de padronização de textos e números ------------------------------
+# 2.3 Funções de padronização de textos e números ------------------------------
 chave_texto = function(x) {
   x %>% as.character() %>% str_squish() %>% stri_trans_general("Latin-ASCII") %>% str_to_lower()
 }
@@ -199,7 +133,7 @@ converter_numero = function(x) {
 }
 
 
-# 3.4 Aplicação da padronização de textos e categorias -------------------------
+# 2.4 Aplicação da padronização de textos e categorias -------------------------
 
 # --- Sessões: plataforma e gênero ---
 generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
@@ -310,7 +244,7 @@ jogadores_limpos = jogadores_limpos %>%
   select(-chave_cidade)
 
 
-# 3.5 Correção de datas --------------------------------------------------------
+# 2.5 Correção de datas --------------------------------------------------------
 # Observação: a versão anterior (candidatas/resolve_data/dif_min) foi substituída
 # por estas funções. Elas exigem que as colunas de data ainda sejam texto.
 
@@ -657,7 +591,7 @@ corrigir_datas_jogadores = function(
 }
 
 
-# 3.6 Aplicação da correção de datas -------------------------------------------
+# 2.6 Aplicação da correção de datas -------------------------------------------
 # Ordem importa: sessões primeiro, pois compras e jogadores dependem delas.
 sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
 partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
@@ -665,7 +599,7 @@ compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
 jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
 
 
-# 3.7 Correção de estados (siglas ISO 3166-2) ----------------------------------
+# 2.7 Correção de estados (siglas ISO 3166-2) ----------------------------------
 # Para cada linha, usando o `pais` como chave:
 # 1. Se o `estado` já é uma sigla válida daquele país (pacote ISOcodes), só
 #    padroniza para maiúsculo e sem espaços.
@@ -903,12 +837,12 @@ jogadores_limpos$estado = corrigir_estados(jogadores_limpos)
 
 
 # ------------------------------------------------------------------------------
-# 4. VALIDAÇÃO (a desenvolver - Etapa 5 do relatório)
+# 3. VALIDAÇÃO (a desenvolver - Etapa 5 do relatório)
 # ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
-# 5. LOAD - EXPORTAÇÃO DOS DATASETS LIMPOS
+# 4. LOAD - EXPORTAÇÃO DOS DATASETS LIMPOS
 # ------------------------------------------------------------------------------
 
 pasta_saida = file.path(base_repo, "gerador", "gerador", "limpos")
@@ -931,5 +865,5 @@ for (nome in names(saidas)) {
 
 
 # ------------------------------------------------------------------------------
-# 6. GRÁFICOS (a desenvolver - Etapa 6 do relatório, com ggplot2)
+# 5. GRÁFICOS (a desenvolver - Etapa 6 do relatório, com ggplot2)
 # ------------------------------------------------------------------------------
