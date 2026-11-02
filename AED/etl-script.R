@@ -15,7 +15,7 @@
 
 # TRUE  = imprime a análise exploratória (head, names, str, summary, ausentes, NA)
 # FALSE = executa apenas o ETL
-EXPLORAR = TRUE
+EXPLORAR = FALSE
 
 pacotes = c("dplyr", "lubridate", "stringr", "stringi", "ggplot2", "here", "ISOcodes")
 # Biblioteca pessoal (evita erro de permissão em /usr/local/lib/R/site-library)
@@ -911,7 +911,7 @@ jogadores_limpos$estado = corrigir_estados(jogadores_limpos)
 # 5. LOAD - EXPORTAÇÃO DOS DATASETS LIMPOS
 # ------------------------------------------------------------------------------
 
-pasta_saida = file.path(base_repo, "gerador", "gerador", "output", "limpos")
+pasta_saida = file.path(base_repo, "gerador", "gerador", "limpos")
 dir.create(pasta_saida, showWarnings = FALSE, recursive = TRUE)
 
 saidas = list(
