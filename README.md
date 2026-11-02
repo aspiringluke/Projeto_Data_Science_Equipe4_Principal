@@ -52,6 +52,9 @@ Explicações técnicas da infraestrutura encontram-se em [infraestrutura/README
 
 ## 📈 Análise Exploratória de Dados
 
+O relatório de [Análise Exploratória de Dados (AED)](AED/aed-PIGrupo4.Rmd) documenta, em R Markdown, o caminho percorrido para ler, inspecionar e preparar os dados de telemetria de jogos digitais gerados pelo simulador do projeto, em parceria com a MIMA Games & Design LTDA. Ele importa os seis conjuntos de dados (compras, itens, itens de compra, jogadores, partidas e sessões) e faz uma análise inicial da estrutura de cada um, com `head()`, `names()`, `str()` e `summary()`. Em seguida, investiga a "sujeira" presente nos dados, como valores ausentes e descontos fora do intervalo válido, que são sinalizados em vez de corrigidos para preservar a rastreabilidade.
+
+Na etapa de transformação, o relatório padroniza os valores ausentes, remove registros duplicados, uniformiza textos e categorias a partir de listas de valores válidos, converte números armazenados como texto e corrige datas registradas em formatos distintos (ISO, dd/mm/aaaa e mm/dd/aaaa), usando referências internas dos próprios dados para resolver ambiguidades. Também mapeia os estados dos jogadores para siglas ISO 3166-2. As etapas de validação dos dados tratados e de geração de gráficos com `ggplot2` ainda estão em desenvolvimento.
 ## 🗄️ Big Data
 
 ## 📊 Probabilidade e Estatística
