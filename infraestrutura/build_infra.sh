@@ -10,7 +10,7 @@ xterm-color | *-256color)
 esac
 
 SCRIPT_NAME=${0##*/}
-VERSION="$SCRIPT_NAME: 0.1 - Equipe 4"
+VERSION="$SCRIPT_NAME: 1.0 - Equipe 4"
 HELP_MSG="
 $VERSION
 
