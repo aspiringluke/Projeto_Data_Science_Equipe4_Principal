@@ -3,12 +3,14 @@
   hosts: app
   become: true
   vars:
+    # criar globals.yml
     pacotes:
       - python3
       - python3-pip
       - python3-venv
       - docker.io
       - docker-compose-v2
+    dir_csvs: "/opt/projeto/csvs"
     app_name: "gerador"
     app_tag: "latest"
     container_name: "gerador"
@@ -91,25 +93,90 @@
           docker run -d
           --name {{ container_name }}
           -p {{ port_host }}:{{ port_container }}
-          --restart on-failure
+          --restart always
+          -v {{ dir_csvs }}:/gerador/gerador/output/sujos
           {{ app_name }}:{{ app_tag }}
       when: needs_restart
       changed_when: true
+    
+    - name: Criar unidade de serviço Systemd para o servidor HTTP
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/csv-server.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Servidor HTTP para compartilhamento de CSVs
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=aluno
+          WorkingDirectory={{ dir_csvs }}
+          ExecStart=/usr/bin/python3 -m http.server 8000
+          Restart=always
+          RestartSec=3
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Garantir que o diretório de CSVs existe
+      ansible.builtin.file:
+        path: "{{ dir_csvs }}"
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0744'
+
+    - name: Iniciar e habilitar o serviço csv-server
+      ansible.builtin.systemd:
+        name: csv-server
+        state: started
+        enabled: true
+        daemon_reload: true
 
 
 - name: Configurar Servidor de Dados
   hosts: dados
   become: true
+  vars:
+    dir_csvs: "/opt/projeto/csvs"
   tasks:
     - name: Atualizar cache de pacotes no servidor de dados
       ansible.builtin.apt:
         update_cache: yes
         cache_valid_time: 3600
-
-    - name: Garantir diretório de armazenamento de dados no servidor dedicado
+    
+    - name: Garantir que o diretório de CSVs existe
       ansible.builtin.file:
-        path: /opt/projeto/dados
+        path: "{{ dir_csvs }}"
         state: directory
         owner: aluno
         group: aluno
         mode: '0755'
+    
+    - name: Garantir diretório de armazenamento de dados no servidor dedicado
+      ansible.builtin.file:
+        path: /opt/projeto/etl
+        state: directory
+        owner: aluno
+        group: aluno
+        mode: '0755'
+    
+    - name: Copiar arquivos de ETL
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../etl/{{ item }}"
+        dest: "/opt/projeto/etl/{{ item }}"
+        owner: aluno
+        group: aluno
+        mode: 0755
+      loop:
+        - pipeline.sh
+        - etl-script.R
+    
+    - name: Criar Cronjob para executar a pipeline periodicamente
+      ansible.builtin.cron:
+        name: "Executar pipeline de download de CSVs"
+        minute: "*"
+        job: "/opt/projeto/etl/pipeline.sh >> /opt/projeto/etl/pipeline.log 2>&1"
+        user: aluno
+        state: present
