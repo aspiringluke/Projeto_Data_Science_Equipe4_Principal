@@ -1100,11 +1100,10 @@ print(painel, row.names = FALSE)
 cat("\nVerificações com falha:\n")
 print(painel[painel$falhas > 0, ], row.names = FALSE)
 
-------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 #### Resultado da validação
 
-```{r}
 painel$status = ifelse(painel$falhas == 0, "OK", "FALHA")
 
 # Verificações com falha aparecem primeiro
@@ -1113,7 +1112,6 @@ print(painel[order(painel$status, -painel$falhas), ], row.names = FALSE)
 cat("\nVerificações:", nrow(painel),
     "| OK:", sum(painel$status == "OK"),
     "| com falha:", sum(painel$status == "FALHA"), "\n")
-```
 
 # ------------------------------------------------------------------------------
 # 4. LOAD - EXPORTAÇÃO DOS DATASETS LIMPOS
