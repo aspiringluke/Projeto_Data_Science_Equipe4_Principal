@@ -837,24 +837,20 @@ jogadores_limpos$estado = corrigir_estados(jogadores_limpos)
 
 
 # ------------------------------------------------------------------------------
-# 3. VALIDAÇÃO (a desenvolver - Etapa 5 do relatório)
+# 3. VALIDAÇÃO
 # ------------------------------------------------------------------------------
-
-### 3.0 - Validação geral
-
-Cada verificação conta quantas linhas violam uma regra e é registrada em um painel. O resultado completo está no final desta seção: `falhas = 0` significa que a regra foi respeitada.
-
-#### Painel e verificações comuns a todas as tabelas
-
-- Linhas duplicadas e chaves (`*_id`) repetidas.
-- Valores ausentes em colunas que o gerador nunca deixa em branco.
-- Textos vazios (`""`) que sobraram.
-
-```{r}
+ 
+# ---- 3.0 - Validação geral ----------------------------------------------------
+ 
+# ---- Painel e verificações comuns a todas as tabelas --------------------------
+# - Linhas duplicadas e chaves (`*_id`) repetidas.
+# - Valores ausentes em colunas que o gerador nunca deixa em branco.
+# - Textos vazios ("") que sobraram.
+ 
 # Data em que o gerador rodou (HOJE do gerador). Troque se gerar os dados de novo.
 data_ref       = as.Date("2026-10-19")
 fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
-
+ 
 # Painel que acumula o resultado de cada verificação
 painel = data.frame(
   tabela      = character(),
@@ -862,7 +858,7 @@ painel = data.frame(
   falhas      = numeric(),
   stringsAsFactors = FALSE
 )
-
+ 
 # Registra uma verificação.
 # 'falhas' pode ser um número ou um vetor lógico (cada TRUE conta como uma falha).
 # Valores NA são ignorados.
@@ -875,7 +871,7 @@ checar = function(tabela, verificacao, falhas) {
   )
   invisible(total)
 }
-
+ 
 tabelas = list(
   compras       = compras_limpas,
   itens         = itens_limpos,
@@ -884,11 +880,11 @@ tabelas = list(
   partidas      = partidas_limpas,
   sessoes       = sessoes_limpas
 )
-
+ 
 # Coluna que identifica cada linha
 chaves = c(compras = "compra_id", itens = "item_id", itens_compras = "item_compra_id",
            jogadores = "player_id", partidas = "partida_id", sessoes = "sessao_id")
-
+ 
 # Colunas em que o gerador deixa valores ausentes de propósito
 na_permitidos = list(
   compras       = "data_compra",
@@ -898,10 +894,10 @@ na_permitidos = list(
   partidas      = "resultado",
   sessoes       = "plataforma"
 )
-
+ 
 for (nome in names(tabelas)) {
   df = tabelas[[nome]]
-
+ 
   checar(nome, "linhas duplicadas", duplicated(df))
   checar(nome, paste(chaves[[nome]], "repetido"), duplicated(df[[chaves[[nome]]]]))
   checar(nome, "NA em colunas que não deveriam ter ausentes",
@@ -909,22 +905,19 @@ for (nome in names(tabelas)) {
   checar(nome, "textos vazios restantes",
          sum(unlist(lapply(df, function(x) if (is.character(x)) sum(x == "", na.rm = TRUE) else 0))))
 }
-```
-
-------------------------------------------------------------------------
-
-#### Jogadores
-
-```{r}
+ 
+# ------------------------------------------------------------------------------
+# ---- Jogadores ----------------------------------------------------------------
+ 
 j = jogadores_limpos
-
+ 
 checar("jogadores", "genero fora da lista",  !is.na(j$genero) & !j$genero %in% generos_validos)
 checar("jogadores", "pais fora da lista",     !j$pais %in% paises_validos)
 checar("jogadores", "estado não é sigla válida do país",
        !is.na(j$estado) & !(paste(iso_do_pais(j$pais), j$estado) %in% siglas_validas))
 checar("jogadores", "idade fora de 16 a 55",  j$idade < 16 | j$idade > 55)
 checar("jogadores", "nivel_jogador fora de 1 a 100", j$nivel_jogador < 1 | j$nivel_jogador > 100)
-
+ 
 # Cidades que ainda aparecem com mais de uma grafia (só maiúsculas/minúsculas)
 variantes_cidade = j %>%
   filter(!is.na(cidade)) %>%
@@ -933,7 +926,7 @@ variantes_cidade = j %>%
   count(chave) %>%
   filter(n > 1)
 checar("jogadores", "cidades com mais de uma grafia", nrow(variantes_cidade))
-
+ 
 # Datas
 checar("jogadores", "datas não convertidas para Date",
        !(inherits(j$data_nascimento, "Date") & inherits(j$data_criacao_conta, "Date")))
@@ -943,25 +936,22 @@ checar("jogadores", "conta criada antes dos 13 anos ou antes de 2010",
        as.numeric(j$data_criacao_conta) <
          pmax(as.numeric(j$data_nascimento %m+% years(13)), as.numeric(as.Date("2010-01-01"))))
 checar("jogadores", "conta criada depois da data de geração", j$data_criacao_conta > data_ref)
-
+ 
 # A conta não pode ser criada depois da primeira sessão do jogador
 prim_sessao = sessoes_limpas %>%
   group_by(player_id) %>%
   summarise(primeira = min(as.Date(data_inicio_sessao), na.rm = TRUE), .groups = "drop")
 j_prim = j %>% inner_join(prim_sessao, by = "player_id")
 checar("jogadores", "conta criada depois da primeira sessão", j_prim$data_criacao_conta > j_prim$primeira)
-```
-
-------------------------------------------------------------------------
-
-#### Sessões
-
-```{r}
+ 
+# ------------------------------------------------------------------------------
+# ---- Sessões ------------------------------------------------------------------
+ 
 s = sessoes_limpas
-
+ 
 checar("sessoes", "plataforma fora da lista", !is.na(s$plataforma) & !s$plataforma %in% plataformas_validas)
 checar("sessoes", "genero_jogo fora da lista", !s$genero_jogo %in% generos_jogo_validos)
-
+ 
 # Combinações plataforma x gênero permitidas pelo gerador
 combinacoes_validas = tibble(
   genero_jogo = c(rep(c("FPS", "RPG", "Ação", "Aventura", "Corrida", "Esportes",
@@ -973,14 +963,14 @@ checar("sessoes", "combinação plataforma x gênero inválida",
        nrow(s %>%
               filter(!is.na(plataforma)) %>%
               anti_join(combinacoes_validas, by = c("genero_jogo", "plataforma"))))
-
+ 
 # Datas e durações
 dur_s = as.numeric(difftime(s$data_fim_sessao, s$data_inicio_sessao, units = "mins"))
 checar("sessoes", "fim antes do início", dur_s < 0)
 checar("sessoes", "duração diferente de duracao_minutos", abs(dur_s - s$duracao_minutos) > 1)
 checar("sessoes", "sessão termina depois da data de geração", s$data_fim_sessao > fim_do_dia_ref)
 checar("sessoes", "nivel_fim menor que nivel_inicio", s$nivel_fim < s$nivel_inicio)
-
+ 
 # Relação com jogadores
 checar("sessoes", "player_id inexistente em jogadores", !s$player_id %in% jogadores_limpos$player_id)
 s_conta = s %>%
@@ -988,23 +978,20 @@ s_conta = s %>%
   inner_join(jogadores_limpos %>% select(player_id, data_criacao_conta), by = "player_id")
 checar("sessoes", "sessão começa antes da criação da conta",
        as.Date(s_conta$data_inicio_sessao) < s_conta$data_criacao_conta)
-```
-
-------------------------------------------------------------------------
-
-#### Partidas
-
-```{r}
+ 
+# ------------------------------------------------------------------------------
+# ---- Partidas -----------------------------------------------------------------
+ 
 p = partidas_limpas
-
+ 
 checar("partidas", "resultado fora da lista", !is.na(p$resultado) & !p$resultado %in% resultados_validos)
-
+ 
 dur_p = as.numeric(difftime(p$data_fim_partida, p$data_inicio_partida, units = "mins"))
 checar("partidas", "fim antes do início", dur_p < 0)
 checar("partidas", "duração diferente de duracao_minutos", abs(dur_p - p$duracao_minutos) > 1)
 checar("partidas", "pontuação fora de 0 a 5000", p$pontuacao < 0 | p$pontuacao > 5000)
 checar("partidas", "experiencia_ganha negativa", p$experiencia_ganha < 0)
-
+ 
 # Relação com sessões
 checar("partidas", "sessao_id inexistente em sessoes", !p$sessao_id %in% sessoes_limpas$sessao_id)
 p_sessao = p %>%
@@ -1013,18 +1000,15 @@ p_sessao = p %>%
 checar("partidas", "partida fora do intervalo da sessão",
        p_sessao$data_inicio_partida < p_sessao$data_inicio_sessao |
          p_sessao$data_fim_partida > p_sessao$data_fim_sessao)
-```
-
-------------------------------------------------------------------------
-
-#### Compras
-
-```{r}
+ 
+# ------------------------------------------------------------------------------
+# ---- Compras ------------------------------------------------------------------
+ 
 cp = compras_limpas
-
+ 
 checar("compras", "data_compra não convertida para data-hora", !inherits(cp$data_compra, "POSIXct"))
 checar("compras", "sessao_id inexistente em sessoes", !cp$sessao_id %in% sessoes_limpas$sessao_id)
-
+ 
 # A compra acontece dentro da sessão
 cp_sessao = cp %>%
   filter(!is.na(data_compra)) %>%
@@ -1033,7 +1017,7 @@ cp_sessao = cp %>%
 checar("compras", "compra fora do intervalo da sessão",
        cp_sessao$data_compra < cp_sessao$data_inicio_sessao |
          cp_sessao$data_compra > cp_sessao$data_fim_sessao)
-
+ 
 # ... e fora de qualquer partida da mesma sessão
 cp_partida = suppressWarnings(
   cp %>%
@@ -1045,24 +1029,21 @@ cp_partida = suppressWarnings(
 checar("compras", "compra durante uma partida",
        cp_partida$data_compra >= cp_partida$data_inicio_partida &
          cp_partida$data_compra <= cp_partida$data_fim_partida)
-
+ 
 # Toda compra tem pelo menos um item
 checar("compras", "compra sem nenhum item em itens_compras", !cp$compra_id %in% itens_compras_limpos$compra_id)
-```
-
-------------------------------------------------------------------------
-
-#### Itens e itens da compra
-
-```{r}
+ 
+# ------------------------------------------------------------------------------
+# ---- Itens e itens da compra --------------------------------------------------
+ 
 it = itens_limpos
-
+ 
 checar("itens", "nome_item fora da lista",      !it$nome_item %in% nomes_validos)
 checar("itens", "categoria_item fora da lista", !it$categoria_item %in% categorias_validas)
 checar("itens", "raridade fora da lista",       !is.na(it$raridade) & !it$raridade %in% raridades_validas)
 checar("itens", "preco_base não numérico ou ausente", !is.numeric(it$preco_base) | is.na(it$preco_base))
 checar("itens", "preco_base menor ou igual a zero", it$preco_base <= 0)
-
+ 
 # nome_item x categoria_item devem bater com o catálogo do gerador
 catalogo_itens = tibble(
   nome_item      = nomes_validos,
@@ -1070,7 +1051,7 @@ catalogo_itens = tibble(
 )
 checar("itens", "nome/categoria fora do catálogo",
        nrow(it %>% anti_join(catalogo_itens, by = c("nome_item", "categoria_item"))))
-
+ 
 # Preços permitidos por raridade
 precos_validos = tibble(
   raridade   = rep(c("Comum", "Incomum", "Rara", "Épica", "Lendária"), times = c(2, 3, 3, 3, 3)),
@@ -1086,31 +1067,38 @@ checar("itens", "preço incompatível com a raridade",
               mutate(preco_base = round(preco_base, 2)) %>%
               anti_join(precos_validos %>% mutate(preco_base = round(preco_base, 2)),
                         by = c("raridade", "preco_base"))))
-```
-
-```{r}
+ 
+# ---- Itens da compra ----------------------------------------------------------
+ 
 ic = itens_compras_limpos
-
+ 
 checar("itens_compras", "valores numéricos não convertidos",
        !(is.numeric(ic$valor_unitario) & is.numeric(ic$desconto) & is.numeric(ic$valor_total_item)))
 checar("itens_compras", "quantidade fora de 1 a 3", !ic$quantidade %in% 1:3)
 checar("itens_compras", "valor_total_item inconsistente",
        abs(ic$valor_unitario * ic$quantidade - ic$desconto - ic$valor_total_item) > 0.011)
-
+ 
 # Percentual de desconto permitido pelo gerador
 pct_desconto = round(ic$desconto / (ic$valor_unitario * ic$quantidade), 2)
 checar("itens_compras", "percentual de desconto inválido", !pct_desconto %in% c(0, 0.05, 0.10, 0.15, 0.20))
-
+ 
 # Relação com compras e itens
 checar("itens_compras", "compra_id inexistente em compras", !ic$compra_id %in% compras_limpas$compra_id)
 checar("itens_compras", "item_id inexistente em itens",     !ic$item_id %in% itens_limpos$item_id)
 checar("itens_compras", "mesmo item repetido na mesma compra", duplicated(ic[c("compra_id", "item_id")]))
-
+ 
 ic_item = ic %>% inner_join(itens_limpos %>% select(item_id, categoria_item, preco_base), by = "item_id")
 checar("itens_compras", "valor_unitario diferente do preco_base", abs(ic_item$valor_unitario - ic_item$preco_base) > 0.011)
 checar("itens_compras", "mais de 1 unidade em DLC, Passe de batalha ou Personagem",
        ic_item$categoria_item %in% c("DLC", "Passe de batalha", "Personagem") & ic_item$quantidade != 1)
-```
+ 
+# ------------------------------------------------------------------------------
+# ---- Resultado final ----------------------------------------------------------
+ 
+print(painel, row.names = FALSE)
+ 
+cat("\nVerificações com falha:\n")
+print(painel[painel$falhas > 0, ], row.names = FALSE)
 
 ------------------------------------------------------------------------
 

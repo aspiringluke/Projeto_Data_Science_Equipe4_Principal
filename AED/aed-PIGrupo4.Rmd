@@ -46,12 +46,12 @@ Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá
 A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem a visualização e interpretação dos dados por meio de diferentes tipos de gráficos, como gráficos de barras, linhas, dispersão e histogramas, etc.
 
 ```{r Etapa 1 - Importação do Dataset}
-install.packages("dplyr")
-install.packages("lubridate")
-install.packages("stringr")
-install.packages("stringi")
-install.packages("ggplot2")
-install.packages("here")
+ install.packages("dplyr")
+ install.packages("lubridate")
+ install.packages("stringr")
+ install.packages("stringi")
+ install.packages("ggplot2")
+ install.packages("here")
 
 
 library(dplyr)
@@ -1494,7 +1494,7 @@ corrigir_estados = function(df) {
 
 ## Etapa 5 - Validação {#etapa-5---validação}
 
---- Validação geral
+### Validação geral
 
 Cada verificação conta quantas linhas violam uma regra e é registrada em um painel. O resultado completo está no final desta seção: `falhas = 0` significa que a regra foi respeitada.
 
@@ -1504,7 +1504,7 @@ Cada verificação conta quantas linhas violam uma regra e é registrada em um p
 - Valores ausentes em colunas que o gerador nunca deixa em branco.
 - Textos vazios (`""`) que sobraram.
 
-```{r}
+```{r Validação Geral}
 # Data em que o gerador rodou (HOJE do gerador). Troque se gerar os dados de novo.
 data_ref       = as.Date("2026-10-19")
 fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
@@ -1569,7 +1569,7 @@ for (nome in names(tabelas)) {
 
 #### Jogadores
 
-```{r}
+```{r Validação de Jogadores}
 j = jogadores_limpos
 
 checar("jogadores", "genero fora da lista",  !is.na(j$genero) & !j$genero %in% generos_validos)
@@ -1610,7 +1610,7 @@ checar("jogadores", "conta criada depois da primeira sessão", j_prim$data_criac
 
 #### Sessões
 
-```{r}
+```{r Validação das Sessões}
 s = sessoes_limpas
 
 checar("sessoes", "plataforma fora da lista", !is.na(s$plataforma) & !s$plataforma %in% plataformas_validas)
@@ -1648,7 +1648,7 @@ checar("sessoes", "sessão começa antes da criação da conta",
 
 #### Partidas
 
-```{r}
+```{r Validação das Partidas}
 p = partidas_limpas
 
 checar("partidas", "resultado fora da lista", !is.na(p$resultado) & !p$resultado %in% resultados_validos)
@@ -1673,7 +1673,7 @@ checar("partidas", "partida fora do intervalo da sessão",
 
 #### Compras
 
-```{r}
+```{r Validação das Compras}
 cp = compras_limpas
 
 checar("compras", "data_compra não convertida para data-hora", !inherits(cp$data_compra, "POSIXct"))
@@ -1708,7 +1708,7 @@ checar("compras", "compra sem nenhum item em itens_compras", !cp$compra_id %in% 
 
 #### Itens e itens da compra
 
-```{r}
+```{r Validação de Itens}
 it = itens_limpos
 
 checar("itens", "nome_item fora da lista",      !it$nome_item %in% nomes_validos)
@@ -1742,7 +1742,7 @@ checar("itens", "preço incompatível com a raridade",
                         by = c("raridade", "preco_base"))))
 ```
 
-```{r}
+```{r Validação de Itens_Compra}
 ic = itens_compras_limpos
 
 checar("itens_compras", "valores numéricos não convertidos",
@@ -1768,9 +1768,9 @@ checar("itens_compras", "mais de 1 unidade em DLC, Passe de batalha ou Personage
 
 ------------------------------------------------------------------------
 
-#### Resultado da validação
+#### Resultado da Validação
 
-```{r}
+```{r Resultado da Validação}
 painel$status = ifelse(painel$falhas == 0, "OK", "FALHA")
 
 # Verificações com falha aparecem primeiro
@@ -1791,6 +1791,8 @@ cat("\nVerificações:", nrow(painel),
 
 Este relatório documentou o percurso de preparação dos dados de telemetria gerados para o projeto integrado da equipe 4, em parceria com a MIMA Games & Design LTDA. Os seis conjuntos de dados (compras, itens, itens_compras, jogadores, partidas e sessões) foram importados, inspecionados com `head()`, `names()`, `str()` e `summary()` e investigados quanto a valores ausentes e inconsistências. A exploração confirmou que todos os conjuntos traziam algum tipo de "sujeira", o que justificou a etapa de transformação. Na auditoria de qualidade, optou-se por sinalizar os descontos fora do intervalo entre 0 e 1 com a coluna `desconto_invalido`, em vez de corrigi-los. Essa escolha preserva o dado original, mantém a rastreabilidade da análise e adia a decisão de tratamento, evitando inserir no dataset valores que parecem legítimos, mas são apenas palpites.
 
-A limpeza seguiu uma sequência deliberada. Primeiro, as diferentes representações de ausência ("", "NA" e "NULL") foram padronizadas para `NA`, e os registros duplicados foram removidos com `distinct()`, com a contagem dos removidos em cada conjunto. Depois, os textos e as categorias foram uniformizados a partir de listas de valores válidos (plataformas, gêneros de jogo, resultados, categorias, raridades, países e gêneros), com `padronizar_categoria()`. Valores fora da lista foram preservados e sinalizados, e não descartados em silêncio. As cidades receberam grafia de referência ou formatação em "Título", os números armazenados como texto foram convertidos e os estados foram mapeados para siglas ISO 3166-2 com apoio de um dicionário próprio. O tratamento das datas, que apareciam em formatos ISO, dd/mm/aaaa e mm/dd/aaaa, foi o ponto mais delicado. Para resolver ambiguidades, foram usadas referências internas dos próprios dados: a `duracao_minutos` em sessões e partidas, o intervalo da sessão em compras e a `idade` e os limites de criação de conta em jogadores. Os casos sem referência conclusiva foram tratados como dd/mm, e a contagem desses casos é informada ao final de cada correção.
+A limpeza seguiu uma sequência deliberada. Primeiro, as diferentes representações de ausência ("", "NA" e "NULL") foram padronizadas para `NA`, e os registros duplicados foram removidos com `distinct()`, com a contagem dos removidos em cada conjunto. Depois, os textos e as categorias foram uniformizados a partir de listas de valores válidos (plataformas, gêneros de jogo, resultados, categorias, raridades, países e gêneros), com `padronizar_categoria()`. Valores fora da lista foram preservados e sinalizados, e não descartados em silêncio. As cidades receberam grafia de referência ou formatação em "Título", os números armazenados como texto foram convertidos e os estados foram mapeados para siglas ISO 3166-2 com apoio de um dicionário próprio. O tratamento das datas, que apareciam em formatos ISO, dd/mm/aaaa e mm/dd/aaaa, foi o ponto mais delicado. Para resolver ambiguidades, foram usadas referências internas dos próprios dados: a `duracao_minutos` em sessões e partidas, o intervalo da sessão em compras, a `idade` e os limites de criação de conta em jogadores. Os casos sem referência conclusiva foram tratados como dd/mm, e a contagem desses casos é informada ao final de cada correção.
 
-Como limitações, as Etapas 5 (Validação) e 6 (Geração dos Gráficos) ainda não foram desenvolvidas, de modo que os resultados da limpeza ainda não foram conferidos de forma sistemática nem visualizados. As datas ambíguas sem referência foram assumidas como dd/mm, e os estados não resolvidos pelo dicionário dependem de complementação manual. Os próximos passos são validar a consistência dos dados tratados (como a ordem entre início e fim, a coerência entre compras e sessões, os descontos sinalizados e os valores fora das listas), definir o tratamento dos descontos inválidos e gerar com o `ggplot2` os gráficos que apoiarão a interpretação do comportamento dos jogadores. Concluídas essas etapas, os dados estarão prontos para alimentar o pipeline de telemetria da MIMA Games.
+A etapa de validação conferiu de forma sistemática os resultados da limpeza. Cada regra foi implementada como uma verificação que conta as linhas que a violam e registra o resultado em um painel, em que `falhas = 0` indica que a regra foi respeitada. Foram aplicadas verificações comuns a todas as tabelas (linhas duplicadas, chaves repetidas, ausências em colunas que não deveriam tê-las e textos vazios remanescentes) e verificações específicas de cada conjunto. Em jogadores, checaram-se os valores permitidos, a coerência entre idade e data de nascimento e a ordem entre criação da conta e primeira sessão. Em sessões e partidas, conferiram-se a ordem entre início e fim, a compatibilidade com `duracao_minutos` e o encaixe das partidas no intervalo da sessão. Em compras, verificou-se se cada compra ocorre dentro da sessão, fora de qualquer partida e com ao menos um item. Em itens e itens_compras, validaram-se o catálogo, os preços por raridade, as quantidades, os percentuais de desconto e a consistência entre valor unitário, desconto e valor total. As integridades referenciais entre as tabelas também foram testadas.
+
+O próximo passo é gerar com o `ggplot2` os gráficos da Etapa 6, que apoiarão a interpretação do comportamento dos jogadores. Concluída essa etapa, os dados estarão prontos para alimentar o pipeline de telemetria da MIMA Games.
