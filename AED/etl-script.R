@@ -67,11 +67,11 @@ padroes = c(
 
 for (nome in names(padroes)){
   caminho = encontrar_csv(pasta_dados, padroes[[nome]])
-
+  
   if (!file.exists(caminho)){
     stop("Arquivo não encontrado: ", caminho)
   }
-
+  
   assign(nome, read.csv(caminho))
   message("Importado: ", basename(caminho), " -> ", nome)
 }
@@ -176,7 +176,7 @@ itens_limpos = itens_limpos %>%
     categoria_item = padronizar_categoria(categoria_item, categorias_validas, "itens$categoria_item"),
     raridade       = padronizar_categoria(raridade, raridades_validas, "itens$raridade"),
     preco_base     = converter_numero(preco_base),
-
+    
     # Preenche raridade ausente apenas quando o preço é inequívoco
     raridade = coalesce(raridade, case_when(
       near(preco_base, 4.90)  ~ "Comum",
@@ -212,7 +212,7 @@ particulas_cidade = c("de", "da", "do", "das", "dos", "del", "della", "di", "du"
 titulo_cidade = function(x) {
   # Expressão regular para encontrar as partículas isoladas por espaços ou hifens
   padrao = paste0("(?<=[ -])(", paste(particulas_cidade, collapse = "|"), ")(?=[ -])")
-
+  
   x %>%
     str_to_lower() %>%                                               # tudo minúsculo
     str_to_title() %>%                                               # inicial maiúscula em cada palavra
@@ -234,10 +234,10 @@ jogadores_limpos = jogadores_limpos %>%
   mutate(
     cidade = str_squish(cidade),
     chave_cidade = str_to_lower(cidade),
-
+    
     # Usa a grafia de referência; se não houver, aplica titulo_cidade()
     cidade = coalesce(ref_cidades$cidade[match(chave_cidade, ref_cidades$chave)], titulo_cidade(cidade)),
-
+    
     genero = padronizar_categoria(genero, generos_validos, "jogadores$genero"),
     pais   = padronizar_categoria(pais, paises_validos, "jogadores$pais")
   ) %>%
@@ -250,32 +250,61 @@ jogadores_limpos = jogadores_limpos %>%
 
 # Interpreta cada data em três formatos: ISO (aaaa-mm-dd), DMY e MDY.
 # Não escolhe a correta; apenas gera as candidatas.
-datas_corrigidas = function(x, hora = FALSE, tz = "UTC") {
 
+inferir_data_ref = function(jogadores_txt) {
+  
+  iso = jogadores_txt %>%
+    distinct(player_id, .keep_all = TRUE) %>%
+    filter(grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", data_nascimento), !is.na(idade)) %>%
+    mutate(nasc = as.Date(data_nascimento),
+           idade = as.numeric(idade))
+  
+  ref_min = iso$nasc %m+% years(iso$idade)
+  ref_max = (iso$nasc %m+% years(iso$idade + 1)) - 1
+  
+  lo = max(ref_min, na.rm = TRUE)
+  hi = min(ref_max, na.rm = TRUE)
+  
+  if (lo > hi) {
+    warning("Idades inconsistentes: não há data_ref única (", lo, " > ", hi, ").")
+    return(as.Date(NA))
+  }
+  if (as.numeric(hi - lo) > 7) {
+    warning("Intervalo de data_ref largo (", lo, " a ", hi, "); confira.")
+  }
+  
+  cat("data_ref inferida entre", format(lo), "e", format(hi), "\n")
+  hi
+}
+
+
+
+datas_corrigidas = function(x, hora = FALSE, tz = "UTC") {
+  
   x = str_squish(x)
   n = length(x)
   sufixo = if (hora) " %H:%M:%S" else ""
-
+  
   ler = function(padrao, formato, trocar_hifen = FALSE) {
-
+    
     idx = which(grepl(padrao, x))
     segundos = rep(NA_real_, n)
-
+    
     if (length(idx) > 0) {
       txt = x[idx]
-
+      
       # 03-05-2024 passa a ser 03/05/2024
       if (trocar_hifen) txt = chartr("-", "/", txt)
-
+      
       segundos[idx] = as.numeric(
         fast_strptime(txt, paste0(formato, sufixo), tz = tz, lt = FALSE)
       )
     }
-
+    
     out = as.POSIXct(segundos, origin = "1970-01-01", tz = tz)
     if (hora) out else as.Date(out)
   }
-
+  
   list(
     iso = ler("^[0-9]{4}-[0-9]{2}-[0-9]{2}", "%Y-%m-%d"),
     dmy = ler("^[0-9]{2}[/-][0-9]{2}[/-][0-9]{4}", "%d/%m/%Y", trocar_hifen = TRUE),
@@ -313,42 +342,44 @@ eh_ambigua = function(cand) {
 # --- Sessões e Partidas: referência = duracao_minutos ---
 # Testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início x as três do fim)
 # e escolhe a que bate com duracao_minutos.
-resolve_por_duracao = function(ini_txt, fim_txt, duracao, tz = "UTC") {
-
+resolve_por_duracao = function(ini_txt, fim_txt, duracao, limite, tz = "UTC") {
+  
   ci = datas_corrigidas(ini_txt, hora = TRUE, tz = tz)
   cf = datas_corrigidas(fim_txt, hora = TRUE, tz = tz)
-
-  # Coluna 1: ISO; coluna 2: DMY; coluna 3: MDY
+  
   ini_num = cbind(as.numeric(ci$iso), as.numeric(ci$dmy), as.numeric(ci$mdy))
   fim_num = cbind(as.numeric(cf$iso), as.numeric(cf$dmy), as.numeric(cf$mdy))
-
-  # 3 formatos para o início x 3 para o fim
+  
   combos = expand.grid(i = 1:3, f = 1:3)
-
-  # Erro de cada combinação em relação à duração informada
+  
   erros = matrix(
     vapply(seq_len(nrow(combos)), function(k) {
       abs((fim_num[, combos$f[k]] - ini_num[, combos$i[k]]) / 60 - duracao)
     }, numeric(length(duracao))),
     nrow = length(duracao)
   )
-
-  # Combinações com valores ausentes não podem ser escolhidas
   erros[is.na(erros)] = Inf
-
-  # Combinação de menor erro em cada linha
-  melhor = max.col(-erros, ties.method = "first")
-  pos = seq_along(melhor)
-  erro = erros[cbind(pos, melhor)]
-
+  
+  # 1 quando o fim da combinação cai depois da data de geração
+  futuro = matrix(
+    vapply(seq_len(nrow(combos)), function(k) {
+      as.numeric(!is.na(fim_num[, combos$f[k]]) & fim_num[, combos$f[k]] > limite)
+    }, numeric(length(duracao))),
+    nrow = length(duracao)
+  )
+  score = erros + 1e6 * futuro
+  
+  melhor = max.col(-score, ties.method = "first")
+  pos  = seq_along(melhor)
+  erro = erros[cbind(pos, melhor)]   # erro real, sem a penalidade
+  
   ini = ini_num[cbind(pos, combos$i[melhor])]
   fim = fim_num[cbind(pos, combos$f[melhor])]
-
-  # Sem combinação validável: prioriza ISO, depois DMY e por último MDY
+  
   sem_ref = is.infinite(erro)
   ini[sem_ref] = dplyr::coalesce(ini_num[, 1], ini_num[, 2], ini_num[, 3])[sem_ref]
   fim[sem_ref] = dplyr::coalesce(fim_num[, 1], fim_num[, 2], fim_num[, 3])[sem_ref]
-
+  
   list(
     ini = segundos_para_posix(ini, tz),
     fim = segundos_para_posix(fim, tz),
@@ -358,21 +389,22 @@ resolve_por_duracao = function(ini_txt, fim_txt, duracao, tz = "UTC") {
 }
 
 corrigir_datas_sessoes = function(sessoes) {
-
+  
   exigir_texto(sessoes, c("data_inicio_sessao", "data_fim_sessao"))
-
+  
   r = resolve_por_duracao(
     sessoes$data_inicio_sessao,
     sessoes$data_fim_sessao,
-    sessoes$duracao_minutos
+    sessoes$duracao_minutos,
+    limite = as.numeric(fim_do_dia_ref)
   )
-
+  
   cat(
     "Sessões - linhas com data ambígua:", sum(r$ambigua),
     "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
     "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
   )
-
+  
   sessoes %>%
     mutate(
       data_inicio_sessao = r$ini,
@@ -381,21 +413,22 @@ corrigir_datas_sessoes = function(sessoes) {
 }
 
 corrigir_datas_partidas = function(partidas) {
-
+  
   exigir_texto(partidas, c("data_inicio_partida", "data_fim_partida"))
-
+  
   r = resolve_por_duracao(
     partidas$data_inicio_partida,
     partidas$data_fim_partida,
-    partidas$duracao_minutos
+    partidas$duracao_minutos,
+    limite = as.numeric(fim_do_dia_ref)
   )
-
+  
   cat(
     "Partidas - linhas com data ambígua:", sum(r$ambigua),
     "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
     "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
   )
-
+  
   partidas %>%
     mutate(
       data_inicio_partida = r$ini,
@@ -409,28 +442,28 @@ corrigir_datas_partidas = function(partidas) {
 # vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas couberem, assume dd/mm.
 # Requer que `sessoes` já tenha as datas corrigidas.
 corrigir_datas_compras = function(compras, sessoes) {
-
+  
   exigir_texto(compras, "data_compra")
-
+  
   cand = datas_corrigidas(compras$data_compra, hora = TRUE)
-
+  
   n_iso = as.numeric(cand$iso)
   n_dmy = as.numeric(cand$dmy)
   n_mdy = as.numeric(cand$mdy)
-
+  
   # Sessão correspondente a cada compra
   pos_sessao = match(compras$sessao_id, sessoes$sessao_id)
-
+  
   ini_n = as.numeric(sessoes$data_inicio_sessao[pos_sessao])
   fim_n = as.numeric(sessoes$data_fim_sessao[pos_sessao])
-
+  
   dentro = function(x) {
     !is.na(x) &
       !is.na(ini_n) &
       x >= ini_n &
       x <= fim_n
   }
-
+  
   # Prioridade: ISO > DMY dentro da sessão > MDY dentro da sessão > DMY > MDY
   nova = ifelse(
     !is.na(n_iso), n_iso,
@@ -442,9 +475,9 @@ corrigir_datas_compras = function(compras, sessoes) {
       )
     )
   )
-
+  
   amb = eh_ambigua(cand)
-
+  
   cat(
     "Compras - datas ambíguas:", sum(amb),
     "| resolvidas pela sessão:",
@@ -452,7 +485,7 @@ corrigir_datas_compras = function(compras, sessoes) {
     "| ainda ambíguas (assumido dd/mm):",
     sum(amb & (dentro(n_dmy) == dentro(n_mdy))), "\n"
   )
-
+  
   compras %>%
     mutate(data_compra = segundos_para_posix(nova))
 }
@@ -472,21 +505,21 @@ idade_em = function(nasc, ref) {
 
 # Requer que `sessoes` já tenha as datas corrigidas.
 corrigir_datas_jogadores = function(
-  jogadores,
-  sessoes,
-  data_ref = as.Date("2026-10-19")
+    jogadores,
+    sessoes,
+    data_ref
 ) {
-
+  
   exigir_texto(jogadores, c("data_nascimento", "data_criacao_conta"))
-
+  
   n = nrow(jogadores)
   pos = seq_len(n)
-
+  
   # ---- PARTE 1: data de nascimento ----
   cn = datas_corrigidas(jogadores$data_nascimento, hora = FALSE)
-
+  
   num_n = cbind(as.numeric(cn$iso), as.numeric(cn$dmy), as.numeric(cn$mdy))
-
+  
   # Diferença entre a idade de cada interpretação e a idade informada
   erros_n = matrix(
     unlist(
@@ -496,32 +529,32 @@ corrigir_datas_jogadores = function(
     ),
     nrow = n
   )
-
+  
   erros_n[is.na(erros_n)] = Inf
-
+  
   melhor_n = max.col(-erros_n, ties.method = "first")
   nasc_num = num_n[cbind(pos, melhor_n)]
-
+  
   # Sem referência válida: prioriza ISO, DMY e MDY
   sem_ref = is.infinite(erros_n[cbind(pos, melhor_n)])
   nasc_num[sem_ref] = dplyr::coalesce(num_n[, 1], num_n[, 2], num_n[, 3])[sem_ref]
-
+  
   nasc = as.Date(nasc_num, origin = "1970-01-01")
-
+  
   # Conferência: % das datas ISO cuja idade bate com `idade`
   iso_ok = !is.na(cn$iso)
   pct_ok = mean(
     idade_em(cn$iso[iso_ok], data_ref) == jogadores$idade[iso_ok],
     na.rm = TRUE
   )
-
+  
   amb_n = eh_ambigua(cn)
-
+  
   cat(
     "Nascimento - conferência (datas ISO que batem com idade):",
     round(100 * pct_ok, 1), "%\n"
   )
-
+  
   cat(
     "Nascimento - datas ambíguas:", sum(amb_n),
     "| resolvidas pela idade:",
@@ -529,21 +562,21 @@ corrigir_datas_jogadores = function(
     "| ainda ambíguas (assumido dd/mm):",
     sum(amb_n & (erros_n[, 2] == erros_n[, 3])), "\n"
   )
-
+  
   # ---- PARTE 2: data de criação da conta ----
   cc = datas_corrigidas(jogadores$data_criacao_conta, hora = FALSE)
-
+  
   c_iso = as.numeric(cc$iso)
   c_dmy = as.numeric(cc$dmy)
   c_mdy = as.numeric(cc$mdy)
-
+  
   # Limite inferior: 13 anos de idade e 2010-01-01
   lim_inf = pmax(
     as.numeric(nasc %m+% years(13)),
     as.numeric(as.Date("2010-01-01")),
     na.rm = TRUE
   )
-
+  
   # Limite superior: primeira sessão do jogador, e nunca depois de data_ref
   prim = tapply(
     as.numeric(as.Date(sessoes$data_inicio_sessao)),
@@ -551,16 +584,16 @@ corrigir_datas_jogadores = function(
     min,
     na.rm = TRUE
   )
-
+  
   lim_sup = as.numeric(prim[as.character(jogadores$player_id)])
   lim_sup = pmin(lim_sup, as.numeric(data_ref), na.rm = TRUE)
-
+  
   dentro = function(x) {
     !is.na(x) &
       x >= lim_inf &
       x <= lim_sup
   }
-
+  
   # Prioridade: ISO > DMY dentro dos limites > MDY dentro dos limites > DMY > MDY
   cria = ifelse(
     !is.na(c_iso), c_iso,
@@ -568,13 +601,15 @@ corrigir_datas_jogadores = function(
       dentro(c_dmy), c_dmy,
       ifelse(
         dentro(c_mdy), c_mdy,
-        ifelse(!is.na(c_dmy), c_dmy, c_mdy)
+        ifelse(!is.na(c_dmy) & c_dmy <= as.numeric(data_ref), c_dmy,
+               ifelse(!is.na(c_mdy) & c_mdy <= as.numeric(data_ref), c_mdy,
+                      ifelse(!is.na(c_dmy), c_dmy, c_mdy)))
       )
     )
   )
-
+  
   amb_c = eh_ambigua(cc)
-
+  
   cat(
     "Criação da conta - datas ambíguas:", sum(amb_c),
     "| resolvidas pelos limites:",
@@ -582,7 +617,7 @@ corrigir_datas_jogadores = function(
     "| ainda ambíguas (assumido dd/mm):",
     sum(amb_c & (dentro(c_dmy) == dentro(c_mdy))), "\n"
   )
-
+  
   jogadores %>%
     mutate(
       data_nascimento = nasc,
@@ -591,12 +626,23 @@ corrigir_datas_jogadores = function(
 }
 
 
+data_ref = inferir_data_ref(jogadores_limpos)
+
+# Plano B: data de modificação do arquivo de jogadores
+if (is.na(data_ref)) {
+  data_ref = as.Date(file.mtime(caminho_jogadores))
+  warning("data_ref inferida pela data do arquivo: ", format(data_ref))
+}
+
+fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
+cat("data_ref usada no pipeline:", format(data_ref), "\n")
+
 # 2.6 Aplicação da correção de datas -------------------------------------------
 # Ordem importa: sessões primeiro, pois compras e jogadores dependem delas.
 sessoes_limpas   = corrigir_datas_sessoes(sessoes_limpas)
 partidas_limpas  = corrigir_datas_partidas(partidas_limpas)
 compras_limpas   = corrigir_datas_compras(compras_limpas, sessoes_limpas)
-jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas)
+jogadores_limpos = corrigir_datas_jogadores(jogadores_limpos, sessoes_limpas, data_ref)
 
 
 # 2.7 Correção de estados (siglas ISO 3166-2) ----------------------------------
@@ -809,27 +855,27 @@ corrigir_estados = function(df) {
   iso      = iso_do_pais(df$pais)
   estado   = str_squish(df$estado)
   sigla_up = str_to_upper(estado)
-
+  
   # Já é uma sigla válida (ISOcodes)?
   ja_sigla = !is.na(estado) & !is.na(iso) & paste(iso, sigla_up) %in% siglas_validas
-
+  
   # Caso contrário, busca pelo nome no dicionário
   por_nome = unname(dic_vec[paste(iso, chave_texto(estado))])
-
+  
   novo          = ifelse(ja_sigla, sigla_up, por_nome)
   nao_resolvido = !is.na(estado) & is.na(novo)
-
+  
   cat("Estado - já era sigla:", sum(ja_sigla),
       "| convertidos pelo dicionário:", sum(!is.na(novo) & !ja_sigla),
       "| não resolvidos:", sum(nao_resolvido), "\n")
-
+  
   # Lista os não resolvidos para manutenção do dicionário
   if (any(nao_resolvido)) {
     cat("\nNão resolvidos (adicione em dic_estados):\n")
     print(count(data.frame(pais = df$pais[nao_resolvido], estado = estado[nao_resolvido]),
                 pais, estado))
   }
-
+  
   return(novo)
 }
 
@@ -839,18 +885,15 @@ jogadores_limpos$estado = corrigir_estados(jogadores_limpos)
 # ------------------------------------------------------------------------------
 # 3. VALIDAÇÃO
 # ------------------------------------------------------------------------------
- 
+
 # ---- 3.0 - Validação geral ----------------------------------------------------
- 
+
 # ---- Painel e verificações comuns a todas as tabelas --------------------------
 # - Linhas duplicadas e chaves (`*_id`) repetidas.
 # - Valores ausentes em colunas que o gerador nunca deixa em branco.
 # - Textos vazios ("") que sobraram.
- 
-# Data em que o gerador rodou (HOJE do gerador). Troque se gerar os dados de novo.
-data_ref       = as.Date("2026-10-19")
-fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
- 
+
+
 # Painel que acumula o resultado de cada verificação
 painel = data.frame(
   tabela      = character(),
@@ -858,7 +901,7 @@ painel = data.frame(
   falhas      = numeric(),
   stringsAsFactors = FALSE
 )
- 
+
 # Registra uma verificação.
 # 'falhas' pode ser um número ou um vetor lógico (cada TRUE conta como uma falha).
 # Valores NA são ignorados.
@@ -871,7 +914,7 @@ checar = function(tabela, verificacao, falhas) {
   )
   invisible(total)
 }
- 
+
 tabelas = list(
   compras       = compras_limpas,
   itens         = itens_limpos,
@@ -880,11 +923,11 @@ tabelas = list(
   partidas      = partidas_limpas,
   sessoes       = sessoes_limpas
 )
- 
+
 # Coluna que identifica cada linha
 chaves = c(compras = "compra_id", itens = "item_id", itens_compras = "item_compra_id",
            jogadores = "player_id", partidas = "partida_id", sessoes = "sessao_id")
- 
+
 # Colunas em que o gerador deixa valores ausentes de propósito
 na_permitidos = list(
   compras       = "data_compra",
@@ -894,10 +937,10 @@ na_permitidos = list(
   partidas      = "resultado",
   sessoes       = "plataforma"
 )
- 
+
 for (nome in names(tabelas)) {
   df = tabelas[[nome]]
- 
+  
   checar(nome, "linhas duplicadas", duplicated(df))
   checar(nome, paste(chaves[[nome]], "repetido"), duplicated(df[[chaves[[nome]]]]))
   checar(nome, "NA em colunas que não deveriam ter ausentes",
@@ -905,19 +948,19 @@ for (nome in names(tabelas)) {
   checar(nome, "textos vazios restantes",
          sum(unlist(lapply(df, function(x) if (is.character(x)) sum(x == "", na.rm = TRUE) else 0))))
 }
- 
+
 # ------------------------------------------------------------------------------
 # ---- Jogadores ----------------------------------------------------------------
- 
+
 j = jogadores_limpos
- 
+
 checar("jogadores", "genero fora da lista",  !is.na(j$genero) & !j$genero %in% generos_validos)
 checar("jogadores", "pais fora da lista",     !j$pais %in% paises_validos)
 checar("jogadores", "estado não é sigla válida do país",
        !is.na(j$estado) & !(paste(iso_do_pais(j$pais), j$estado) %in% siglas_validas))
 checar("jogadores", "idade fora de 16 a 55",  j$idade < 16 | j$idade > 55)
 checar("jogadores", "nivel_jogador fora de 1 a 100", j$nivel_jogador < 1 | j$nivel_jogador > 100)
- 
+
 # Cidades que ainda aparecem com mais de uma grafia (só maiúsculas/minúsculas)
 variantes_cidade = j %>%
   filter(!is.na(cidade)) %>%
@@ -926,7 +969,7 @@ variantes_cidade = j %>%
   count(chave) %>%
   filter(n > 1)
 checar("jogadores", "cidades com mais de uma grafia", nrow(variantes_cidade))
- 
+
 # Datas
 checar("jogadores", "datas não convertidas para Date",
        !(inherits(j$data_nascimento, "Date") & inherits(j$data_criacao_conta, "Date")))
@@ -936,22 +979,22 @@ checar("jogadores", "conta criada antes dos 13 anos ou antes de 2010",
        as.numeric(j$data_criacao_conta) <
          pmax(as.numeric(j$data_nascimento %m+% years(13)), as.numeric(as.Date("2010-01-01"))))
 checar("jogadores", "conta criada depois da data de geração", j$data_criacao_conta > data_ref)
- 
+
 # A conta não pode ser criada depois da primeira sessão do jogador
 prim_sessao = sessoes_limpas %>%
   group_by(player_id) %>%
   summarise(primeira = min(as.Date(data_inicio_sessao), na.rm = TRUE), .groups = "drop")
 j_prim = j %>% inner_join(prim_sessao, by = "player_id")
 checar("jogadores", "conta criada depois da primeira sessão", j_prim$data_criacao_conta > j_prim$primeira)
- 
+
 # ------------------------------------------------------------------------------
 # ---- Sessões ------------------------------------------------------------------
- 
+
 s = sessoes_limpas
- 
+
 checar("sessoes", "plataforma fora da lista", !is.na(s$plataforma) & !s$plataforma %in% plataformas_validas)
 checar("sessoes", "genero_jogo fora da lista", !s$genero_jogo %in% generos_jogo_validos)
- 
+
 # Combinações plataforma x gênero permitidas pelo gerador
 combinacoes_validas = tibble(
   genero_jogo = c(rep(c("FPS", "RPG", "Ação", "Aventura", "Corrida", "Esportes",
@@ -963,14 +1006,14 @@ checar("sessoes", "combinação plataforma x gênero inválida",
        nrow(s %>%
               filter(!is.na(plataforma)) %>%
               anti_join(combinacoes_validas, by = c("genero_jogo", "plataforma"))))
- 
+
 # Datas e durações
 dur_s = as.numeric(difftime(s$data_fim_sessao, s$data_inicio_sessao, units = "mins"))
 checar("sessoes", "fim antes do início", dur_s < 0)
 checar("sessoes", "duração diferente de duracao_minutos", abs(dur_s - s$duracao_minutos) > 1)
 checar("sessoes", "sessão termina depois da data de geração", s$data_fim_sessao > fim_do_dia_ref)
 checar("sessoes", "nivel_fim menor que nivel_inicio", s$nivel_fim < s$nivel_inicio)
- 
+
 # Relação com jogadores
 checar("sessoes", "player_id inexistente em jogadores", !s$player_id %in% jogadores_limpos$player_id)
 s_conta = s %>%
@@ -978,20 +1021,20 @@ s_conta = s %>%
   inner_join(jogadores_limpos %>% select(player_id, data_criacao_conta), by = "player_id")
 checar("sessoes", "sessão começa antes da criação da conta",
        as.Date(s_conta$data_inicio_sessao) < s_conta$data_criacao_conta)
- 
+
 # ------------------------------------------------------------------------------
 # ---- Partidas -----------------------------------------------------------------
- 
+
 p = partidas_limpas
- 
+
 checar("partidas", "resultado fora da lista", !is.na(p$resultado) & !p$resultado %in% resultados_validos)
- 
+
 dur_p = as.numeric(difftime(p$data_fim_partida, p$data_inicio_partida, units = "mins"))
 checar("partidas", "fim antes do início", dur_p < 0)
 checar("partidas", "duração diferente de duracao_minutos", abs(dur_p - p$duracao_minutos) > 1)
 checar("partidas", "pontuação fora de 0 a 5000", p$pontuacao < 0 | p$pontuacao > 5000)
 checar("partidas", "experiencia_ganha negativa", p$experiencia_ganha < 0)
- 
+
 # Relação com sessões
 checar("partidas", "sessao_id inexistente em sessoes", !p$sessao_id %in% sessoes_limpas$sessao_id)
 p_sessao = p %>%
@@ -1000,15 +1043,15 @@ p_sessao = p %>%
 checar("partidas", "partida fora do intervalo da sessão",
        p_sessao$data_inicio_partida < p_sessao$data_inicio_sessao |
          p_sessao$data_fim_partida > p_sessao$data_fim_sessao)
- 
+
 # ------------------------------------------------------------------------------
 # ---- Compras ------------------------------------------------------------------
- 
+
 cp = compras_limpas
- 
+
 checar("compras", "data_compra não convertida para data-hora", !inherits(cp$data_compra, "POSIXct"))
 checar("compras", "sessao_id inexistente em sessoes", !cp$sessao_id %in% sessoes_limpas$sessao_id)
- 
+
 # A compra acontece dentro da sessão
 cp_sessao = cp %>%
   filter(!is.na(data_compra)) %>%
@@ -1017,7 +1060,7 @@ cp_sessao = cp %>%
 checar("compras", "compra fora do intervalo da sessão",
        cp_sessao$data_compra < cp_sessao$data_inicio_sessao |
          cp_sessao$data_compra > cp_sessao$data_fim_sessao)
- 
+
 # ... e fora de qualquer partida da mesma sessão
 cp_partida = suppressWarnings(
   cp %>%
@@ -1029,21 +1072,21 @@ cp_partida = suppressWarnings(
 checar("compras", "compra durante uma partida",
        cp_partida$data_compra >= cp_partida$data_inicio_partida &
          cp_partida$data_compra <= cp_partida$data_fim_partida)
- 
+
 # Toda compra tem pelo menos um item
 checar("compras", "compra sem nenhum item em itens_compras", !cp$compra_id %in% itens_compras_limpos$compra_id)
- 
+
 # ------------------------------------------------------------------------------
 # ---- Itens e itens da compra --------------------------------------------------
- 
+
 it = itens_limpos
- 
+
 checar("itens", "nome_item fora da lista",      !it$nome_item %in% nomes_validos)
 checar("itens", "categoria_item fora da lista", !it$categoria_item %in% categorias_validas)
 checar("itens", "raridade fora da lista",       !is.na(it$raridade) & !it$raridade %in% raridades_validas)
 checar("itens", "preco_base não numérico ou ausente", !is.numeric(it$preco_base) | is.na(it$preco_base))
 checar("itens", "preco_base menor ou igual a zero", it$preco_base <= 0)
- 
+
 # nome_item x categoria_item devem bater com o catálogo do gerador
 catalogo_itens = tibble(
   nome_item      = nomes_validos,
@@ -1051,7 +1094,7 @@ catalogo_itens = tibble(
 )
 checar("itens", "nome/categoria fora do catálogo",
        nrow(it %>% anti_join(catalogo_itens, by = c("nome_item", "categoria_item"))))
- 
+
 # Preços permitidos por raridade
 precos_validos = tibble(
   raridade   = rep(c("Comum", "Incomum", "Rara", "Épica", "Lendária"), times = c(2, 3, 3, 3, 3)),
@@ -1067,36 +1110,36 @@ checar("itens", "preço incompatível com a raridade",
               mutate(preco_base = round(preco_base, 2)) %>%
               anti_join(precos_validos %>% mutate(preco_base = round(preco_base, 2)),
                         by = c("raridade", "preco_base"))))
- 
+
 # ---- Itens da compra ----------------------------------------------------------
- 
+
 ic = itens_compras_limpos
- 
+
 checar("itens_compras", "valores numéricos não convertidos",
        !(is.numeric(ic$valor_unitario) & is.numeric(ic$desconto) & is.numeric(ic$valor_total_item)))
 checar("itens_compras", "quantidade fora de 1 a 3", !ic$quantidade %in% 1:3)
 checar("itens_compras", "valor_total_item inconsistente",
        abs(ic$valor_unitario * ic$quantidade - ic$desconto - ic$valor_total_item) > 0.011)
- 
+
 # Percentual de desconto permitido pelo gerador
 pct_desconto = round(ic$desconto / (ic$valor_unitario * ic$quantidade), 2)
 checar("itens_compras", "percentual de desconto inválido", !pct_desconto %in% c(0, 0.05, 0.10, 0.15, 0.20))
- 
+
 # Relação com compras e itens
 checar("itens_compras", "compra_id inexistente em compras", !ic$compra_id %in% compras_limpas$compra_id)
 checar("itens_compras", "item_id inexistente em itens",     !ic$item_id %in% itens_limpos$item_id)
 checar("itens_compras", "mesmo item repetido na mesma compra", duplicated(ic[c("compra_id", "item_id")]))
- 
+
 ic_item = ic %>% inner_join(itens_limpos %>% select(item_id, categoria_item, preco_base), by = "item_id")
 checar("itens_compras", "valor_unitario diferente do preco_base", abs(ic_item$valor_unitario - ic_item$preco_base) > 0.011)
 checar("itens_compras", "mais de 1 unidade em DLC, Passe de batalha ou Personagem",
        ic_item$categoria_item %in% c("DLC", "Passe de batalha", "Personagem") & ic_item$quantidade != 1)
- 
+
 # ------------------------------------------------------------------------------
 # ---- Resultado final ----------------------------------------------------------
- 
+
 print(painel, row.names = FALSE)
- 
+
 cat("\nVerificações com falha:\n")
 print(painel[painel$falhas > 0, ], row.names = FALSE)
 
@@ -1134,6 +1177,7 @@ for (nome in names(saidas)) {
   write.csv(saidas[[nome]], destino, row.names = FALSE, fileEncoding = "UTF-8")
   message("Exportado: ", destino)
 }
+
 
 
 # ------------------------------------------------------------------------------
