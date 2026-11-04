@@ -94,7 +94,7 @@
           --name {{ container_name }}
           -p {{ port_host }}:{{ port_container }}
           --restart always
-          -v {{ dir_csvs }}:/gerador/gerador/output/sujos
+          -v {{ dir_csvs }}:/gerador/gerador/output
           {{ app_name }}:{{ app_tag }}
       when: needs_restart
       changed_when: true
@@ -146,6 +146,11 @@
         update_cache: yes
         cache_valid_time: 3600
     
+    - name: Instalar R
+      ansible.builtin.apt:
+        name: r-base
+        state: present
+
     - name: Garantir que o diretório de CSVs existe
       ansible.builtin.file:
         path: "{{ dir_csvs }}"
@@ -170,13 +175,13 @@
         group: aluno
         mode: 0755
       loop:
-        - pipeline.sh
+        - pipeline.py
         - etl-script.R
     
     - name: Criar Cronjob para executar a pipeline periodicamente
       ansible.builtin.cron:
         name: "Executar pipeline de download de CSVs"
         minute: "*"
-        job: "/opt/projeto/etl/pipeline.sh >> /opt/projeto/etl/pipeline.log 2>&1"
+        job: "python3 /opt/projeto/etl/pipeline.py >> /opt/projeto/etl/pipeline.log 2>&1"
         user: aluno
         state: present
