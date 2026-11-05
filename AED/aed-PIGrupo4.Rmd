@@ -1878,7 +1878,7 @@ cat('\n')
 itens_compras_limpos |> filter(
   valor_total_item < limite_inferior |
     valor_total_item > limite_superior
-)
+) |> select(compra_id, item_id, valor_total_item) |> arrange(valor_total_item)
 ```
 
 ------------------------------------------------------------------------
