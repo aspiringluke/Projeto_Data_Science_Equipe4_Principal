@@ -1881,6 +1881,46 @@ itens_compras_limpos |> filter(
 ) |> select(compra_id, item_id, valor_total_item) |> arrange(valor_total_item)
 ```
 
+1. Duração das sessões por plataforma
+```{r}
+
+```
+
+2. Horários e dias com maior atividade
+```{r}
+
+```
+
+3. Evolução dos jogadores durante as sessões
+```{r}
+
+```
+
+4. Relação entre duração da sessão e experiência adquirida
+```{r}
+
+```
+
+5. Experiência adquirida por gênero de jogo
+```{r}
+
+```
+
+6. Itens e categorias mais populares
+```{r}
+
+```
+
+7. Evolução do faturamento ao longo do tempo
+```{r}
+
+```
+
+8. Impacto dos descontos nas compras
+```{r}
+
+```
+
 ------------------------------------------------------------------------
 
 ## Considerações Finais {#considerações-finais}
