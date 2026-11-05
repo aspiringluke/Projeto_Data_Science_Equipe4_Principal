@@ -11,5 +11,6 @@ tofu_plan
 # Arquivos do RStudio
 .RData
 .Rhistory
+.RDataTmp
 *.Rproj
 *.nb.html
