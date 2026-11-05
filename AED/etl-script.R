@@ -1173,7 +1173,8 @@ saidas = list(
 )
 
 for (nome in names(saidas)) {
-  destino = file.path(pasta_saida, paste0(nome, "_limpo.csv"))
+  timestamp = format(Sys.time(), "%Y%m%d_%H%M%S")
+  destino = file.path(pasta_saida, paste0(nome, "_", timestamp, "_limpo.csv"))
   write.csv(saidas[[nome]], destino, row.names = FALSE, fileEncoding = "UTF-8")
   message("Exportado: ", destino)
 }
