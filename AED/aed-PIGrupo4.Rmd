@@ -1785,6 +1785,102 @@ cat("\nVerificações:", nrow(painel),
 
 ## Etapa 6 - Geração dos Gráficos {#etapa-6---geração-dos-gráficos}
 
+Antes de gerar os gráficos de AED com a biblioteca `ggplot2`, iremos utilizar ferramentas de estatística descritiva, como média, moda, mediana, quartis, desvio padrão, etc para levantar algumas informações númericas que possam gerar insights preciosos posteriormente
+
+```{r}
+# Verificar o nome das observações dos datasets processados
+cat('Compras limpas:\n')
+names(compras_limpas)
+cat('\n')
+
+cat('Itens limpos:\n')
+names(itens_limpos)
+cat('\n')
+
+cat('Itens_Compras limpos:\n')
+names(itens_compras_limpos)
+cat('\n')
+
+cat('Jogadores limpos:\n')
+names(jogadores_limpos)
+cat('\n')
+
+cat('Partidas limpas:\n')
+names(partidas_limpas)
+cat('\n')
+
+cat('Sessões limpas:\n')
+names(sessoes_limpas)
+
+# Média
+media_valor_total_item = mean(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+max_valor_total_item = max(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+min_valor_total_item = min(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+cat('Máior Valor Total de Itens:\n')
+round(max_valor_total_item, 2)
+cat('\n')
+cat('Menor Valor Total de Itens:\n')
+round(min_valor_total_item, 2)
+cat('\n')
+cat('Média Valor Total de Itens:\n')
+round(media_valor_total_item, 2)
+cat('\n')
+
+# Mediana
+mediana_valor_total_item = median(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+cat('Mediana Valor Total de Itens:\n')
+round(mediana_valor_total_item, 2)
+cat('\n')
+
+# Moda
+itens_compras_limpos |> count(valor_total_item, sort = TRUE)
+
+# Amplitude
+cat('Amplitude Valor Total Item:\n')
+amplitude_valor_total_item = max_valor_total_item - min_valor_total_item
+amplitude_valor_total_item
+cat('\n')
+
+# Variância
+variancia_valor_total_item = var(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão Valor Total Item:\n')
+dp = sqrt(variancia_valor_total_item)
+round(dp, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis Valor Total Item:\n')
+quantile(itens_compras_limpos$valor_total_item, probs = c(0.25, 0.50, 0.75), na.rm = TRUE)
+cat('\n')
+
+# Intervalo inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+cat('\n')
+
+# Calcular Outliers
+q1 = quantile(itens_compras_limpos$valor_total_item, 0.25, na.rm = TRUE)
+q3 = quantile(itens_compras_limpos$valor_total_item, 0.75, na.rm = TRUE)
+
+aiq = q3 - q1
+
+cat('Limites Valor Total Item:\n')
+limite_inferior = q1 - 1.5 * aiq
+limite_superior = q3 + 1.5 * aiq
+cat(round(limite_inferior, 2), "———", round(limite_superior, 2))
+cat('\n')
+
+# Identificar Valores Totais atípicos
+itens_compras_limpos |> filter(
+  valor_total_item < limite_inferior |
+    valor_total_item > limite_superior
+)
+```
+
 ------------------------------------------------------------------------
 
 ## Considerações Finais {#considerações-finais}
