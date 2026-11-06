@@ -1,7 +1,10 @@
+
 # providers do terraform
 .terraform/
+
 # outros arquivos do terraform
 *terraform*
+
 # plano do Tofu
 tofu_plan
 
@@ -14,3 +17,33 @@ tofu_plan
 .RDataTmp
 *.Rproj
 *.nb.html
+
+# Ambientes virtuais Python
+.venv/
+venv/
+env/
+
+# Cache e arquivos temporários Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Variáveis de ambiente e configurações locais
+.env
+.env.*
+!.env.example
+
+# Configurações pessoais do VS Code
+.vscode/
+
+# Dados locais do Hadoop
+hadoop_data/
+
+# Arquivos temporários do sistema
+.DS_Store
+Thumbs.db
+*.tmp
