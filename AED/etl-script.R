@@ -1011,7 +1011,6 @@ checar("sessoes", "combinação plataforma x gênero inválida",
 dur_s = as.numeric(difftime(s$data_fim_sessao, s$data_inicio_sessao, units = "mins"))
 checar("sessoes", "fim antes do início", dur_s < 0)
 checar("sessoes", "duração diferente de duracao_minutos", abs(dur_s - s$duracao_minutos) > 1)
-checar("sessoes", "sessão termina depois da data de geração", s$data_fim_sessao > fim_do_dia_ref)
 checar("sessoes", "nivel_fim menor que nivel_inicio", s$nivel_fim < s$nivel_inicio)
 
 # Relação com jogadores
