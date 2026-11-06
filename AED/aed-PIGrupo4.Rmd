@@ -47,11 +47,11 @@ A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem 
 
 ```{r Etapa 1 - Importação do Dataset}
  install.packages("dplyr")
- install.packages("lubridate")
- install.packages("stringr")
- install.packages("stringi")
- install.packages("ggplot2")
- install.packages("here")
+install.packages("lubridate")
+install.packages("stringr")
+install.packages("stringi")
+install.packages("ggplot2")
+install.packages("here")
 
 
 library(dplyr)
@@ -1787,7 +1787,7 @@ cat("\nVerificações:", nrow(painel),
 
 Antes de gerar os gráficos de AED com a biblioteca `ggplot2`, iremos utilizar ferramentas de estatística descritiva, como média, moda, mediana, quartis, desvio padrão, etc para levantar algumas informações númericas que possam gerar insights preciosos posteriormente
 
-```{r}
+```{r Análise de Valores com Estatística Descritiva - Duração da Sessão}
 # Verificar o nome das observações dos datasets processados
 cat('Compras limpas:\n')
 names(compras_limpas)
@@ -1888,9 +1888,9 @@ sessoes_limpas |> filter(
     duracao_minutos > limite_superior_duracao
 ) |> select(sessao_id, player_id, duracao_minutos, plataforma) |>
   arrange(duracao_minutos)
+```
 
-
-# Horários e dias com maior atividade
+```{r Análise de Valores com Estatística Descritiva - Horários e dias com maior atividade}
 # Horários com maior atividade
 cat('Horários com maior atividade:\n')
 
@@ -1919,8 +1919,9 @@ sessoes_limpas |>
   ) |>
   count(dia_semana, hora, sort = TRUE)
 
+```
 
-# Evolução dos jogadores durante as sessões
+```{r Análise de Valores com Estatística Descritiva - Evolução dos jogadores durante as sessões}
 # Criar variável de evolução
 evolucao_jogadores = sessoes_limpas |>
   mutate(evolucao = nivel_fim - nivel_inicio)
@@ -1979,8 +1980,9 @@ cat('Intervalo Inter-Quartil:\n')
 IQR(evolucao_jogadores$evolucao, na.rm = TRUE)
 cat('\n')
 
+```
 
-# Relação entre duração da sessão e experiência adquirida
+```{r Análise de Valores com Estatística Descritiva - Relação entre duração da sessão e experiência adquirida}
 # Relacionando sessões com partidas
 experiencia_sessoes = partidas_limpas |>
   group_by(sessao_id) |>
@@ -2069,8 +2071,9 @@ cat('Intervalo Inter-Quartil:\n')
 IQR(experiencia_sessoes$experiencia_ganha, na.rm = TRUE)
 cat('\n')
 
+```
 
-# Experiência adquirida por gênero de jogo
+```{r Análise de Valores com Estatística Descritiva - Experiência adquirida por gênero de jogo}
 # Relacionando sessões com partidas
 experiencia_genero = partidas_limpas |>
   left_join(
@@ -2103,8 +2106,9 @@ experiencia_genero |>
   ) |>
   arrange(desc(experiencia_total))
 
+```
 
-# Itens e categorias mais populares
+```{r Análise de Valores com Estatística Descritiva - Itens e categorias mais populares}
 # Quantidade por item
 cat('Itens mais populares:\n')
 
@@ -2180,8 +2184,9 @@ cat('\n')
 itens_compras_limpos |>
   count(quantidade, sort = TRUE)
 
+```
 
-# Evolução do faturamento ao longo do tempo
+```{r Análise de Valores com Estatística Descritiva - Evolução do faturamento ao longo do tempo}
 faturamento = itens_compras_limpos |>
   left_join(
     compras_limpas |>
@@ -2269,8 +2274,9 @@ itens_compras_limpos |> filter(
     valor_total_item > limite_superior
 ) |> select(compra_id, item_id, valor_total_item) |> arrange(valor_total_item)
 
+```
 
-# Impacto dos descontos nas compras
+```{r Análise de Valores com Estatística Descritiva - Impacto dos descontos nas compras}
 # Média
 media_desconto = mean(
   itens_compras_limpos$desconto,
@@ -2359,19 +2365,68 @@ itens_compras_limpos |>
 1.  Duração das sessões por plataforma
 
 ```{r}
-
+ggplot(
+  sessoes_limpas,
+  aes(
+    x = plataforma,
+    y = duracao_minutos
+  )
+) + geom_col(
+  fill = "lightblue"
+) + labs(
+  title = "Duração das Sessões por Plataforma",
+  x = "Plataforma",
+  y = "Duração (min)"
+) + theme_minimal()
 ```
 
 2.  Horários e dias com maior atividade
 
 ```{r}
-
+sessoes_limpas |>
+  mutate(
+    hora = format(data_inicio_sessao, "%H"),
+    dia_semana = weekdays(data_inicio_sessao)
+  ) |>
+  count(hora, dia_semana, name = "quantidade") |>
+  ggplot(
+    aes(
+      x = hora,
+      y = quantidade,
+      color = dia_semana
+    )
+  ) +
+  geom_point(
+    size = 2.5,
+    alpha = 0.8
+  ) +
+  labs(
+    title = "Horários e Dias com Maior Atividade",
+    x = "Hora",
+    y = "Quantidade de Sessões",
+    color = "Dias da Semana"
+  ) +
+  theme_minimal()
 ```
 
 3.  Evolução dos jogadores durante as sessões
 
 ```{r}
-
+ggplot(
+  evolucao_jogadores,
+  aes(
+    x = duracao_minutos,
+    y = evolucao
+  )
+) + geom_point(
+  size = 1.5,
+  alpha = 0.8,
+  colour = "lightblue"
+) + labs(
+  title = "Evolução dos Jogadores durante as Sessões",
+  x = "Duração (min)",
+  y = "Evolução (nivel_fim - nivel_inicio)"
+) + theme_minimal()
 ```
 
 4.  Relação entre duração da sessão e experiência adquirida
