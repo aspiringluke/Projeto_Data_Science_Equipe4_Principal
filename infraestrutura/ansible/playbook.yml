@@ -1,6 +1,6 @@
 ---
-- name: Configurar Servidor de Aplicação (Gerador)
-  hosts: app
+- name: Configurar VM do Gerador
+  hosts: gerador
   become: true
   vars:
     # criar globals.yml
@@ -18,15 +18,12 @@
     port_container: 4040
 
   tasks:
-    - name: Atualizar lista de pacotes
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-
     - name: Instalar pacotes necessários
       ansible.builtin.apt:
         name: "{{ pacotes }}"
         state: present
+        update_cache: yes
+        cache_valid_time: 3600
     
     - name: Garantir docker ativo
       ansible.builtin.service:
@@ -135,21 +132,18 @@
         daemon_reload: true
 
 
-- name: Configurar Servidor de Dados
-  hosts: dados
+- name: Configurar VM de Tratamento
+  hosts: tratamento
   become: true
   vars:
     dir_csvs: "/opt/projeto/csvs"
   tasks:
-    - name: Atualizar cache de pacotes no servidor de dados
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-    
     - name: Instalar R
       ansible.builtin.apt:
-        name: r-base
+        name: r-base-core
         state: present
+        update_cache: yes
+        cache_valid_time: 3600
 
     - name: Garantir que o diretório de CSVs existe
       ansible.builtin.file:
