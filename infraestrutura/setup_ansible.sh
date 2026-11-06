@@ -10,7 +10,7 @@ xterm-color | *-256color)
 esac
 
 SCRIPT_NAME=${0##*/}
-VERSION="$SCRIPT_NAME: 0.9 - Equipe 4"
+VERSION="$SCRIPT_NAME: 0.10 - Equipe 4"
 HELP_MSG="
 $VERSION
 
@@ -20,13 +20,19 @@ Opções:
   -h, --help                    Mostra essa página de ajuda
   -v, --version                 Mostra a versão atual
   -s, --skip-checks             Pula as verificações de conexão e sintaxe
+  XX, --check-only=VALUE        Realiza apenas um ou ambos os testes de verificação,
+                                | de acordo com VALUE, cujos valores podem ser:
+                                | - no     -> executa o script normalmente (PADRÃO)
+                                | - all    -> realiza todos os testes
+                                | - syntax -> verifica apenas a sintaxe do playbook
+                                | - ping   -> verifica apenas a conexão às VMs
 
 Opções de teste de conexão:
 
   XX, --wait=N                  Espera N segundos entre verificações de conexão. Padrão: 5
   XX, --retry=N                 Tenta a conexão N vezes. Padrão: 7
 
-(As opções curtas dos teste de conexão ainda não foram implementadas)
+(As opções curtas dos testes de conexão ainda não foram implementadas)
 "
 
 
@@ -59,6 +65,9 @@ for arg in "$@"; do
                 ;;
             skip-checks)
                 SKIP_CHECKS=1
+                ;;
+            check-only*)
+                CHECK_ONLY=${opt##*=}
                 ;;
             wait*)
                 WAIT=${opt##*=}
@@ -101,6 +110,7 @@ for arg in "$@"; do
     fi
 done
 
+if [[ -z "${CHECK_ONLY}" ]]; then CHECK_ONLY=no; fi
 if [[ -z "${WAIT}" ]]; then WAIT=5; fi
 if [[ -z "${RETRY}" ]]; then RETRY=7; fi
 
@@ -120,15 +130,38 @@ if [[ -z "$SKIP_CHECKS" ]]; then
     # não lê, e fica esperando a entrada do teclado.
     # Bom, por enquanto, apenas lembre-se de digitar yes nas duas vezes em que for
     # pedido
-    while [[ -z "$finished" ]]; do
-        msg "${warn_color}Verificando a conectividade dos hosts...${default_color}"
-        sleep $WAIT
-        ansible all -i ansible/inventory.ini -m ping --private-key ~/.ssh/devops_lab
-        exit_code=$?
-        ((RETRY--))
-        if [[ $exit_code -eq 0 ]]; then finished=true; continue; fi
-        if [[ $RETRY -lt 0 ]]; then msg "${warn_color}Limite de tentativas atingido${default_color}"; exit 1; fi
-    done
+    
+    if [[ 
+        "$CHECK_ONLY" == "no" ||
+        "$CHECK_ONLY" == "all" ||
+        "$CHECK_ONLY" == "syntax"
+    ]]; then
+        msg "Verificando sintaxe do playbook..."
+        ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --syntax-check
+        cod_erro=$?
+        if [[ cod_erro -ne 0 ]]; then
+            msg "${error_color}ERROR: A sintaxe do playbook está incorreta. Corrija-a antes de prosseguir${default_color}"
+            exit $cod_erro
+        fi
+
+        msg "${ok_color}OK: Sintaxe do playbook correta.${default_color}"
+    fi
+
+    if [[ 
+        "$CHECK_ONLY" == "no" ||
+        "$CHECK_ONLY" == "all" ||
+        "$CHECK_ONLY" == "ping"
+    ]]; then
+        while [[ -z "$finished" ]]; do
+            msg "${warn_color}Verificando a conectividade dos hosts...${default_color}"
+            sleep "$WAIT"
+            ansible all -i ansible/inventory.ini -m ping --private-key ~/.ssh/devops_lab
+            exit_code=$?
+            ((RETRY--))
+            if [[ $exit_code -eq 0 ]]; then finished=true; continue; fi
+            if [[ $RETRY -lt 0 ]]; then msg "${warn_color}Limite de tentativas atingido${default_color}"; exit 1; fi
+        done
+    fi
     # cod_erro=$?
     # if [[ cod_erro -ne 0 ]]; then
     #     msg "${error_color}ERROR: Não foi possível conectar com os hosts, abortando${default_color}"
@@ -136,24 +169,17 @@ if [[ -z "$SKIP_CHECKS" ]]; then
     # fi
 
     msg "${ok_color}OK: Conexão estabelecida${default_color}"
-    msg "Verificando sintaxe do playbook..."
-    ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --syntax-check
+fi
+
+if [[ "$CHECK_ONLY" == "no" ]]; then
+    msg "Executando playbook..."
+    ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key ~/.ssh/devops_lab
     cod_erro=$?
     if [[ cod_erro -ne 0 ]]; then
-        msg "${error_color}ERROR: A sintaxe do playbook está incorreta. Corrija-a antes de prosseguir${default_color}"
+        msg "${error_color}ERROR: Houve um erro ao executar o playbook${default_color}"
         exit $cod_erro
     fi
 
-    msg "${ok_color}OK: Sintaxe do playbook correta.${default_color}"
+    msg "${ok_color}OK: Playbook executado"
+    msg "SUCCESS: As VMs estão configuradas."
 fi
-
-msg "Executando playbook..."
-ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key ~/.ssh/devops_lab
-cod_erro=$?
-if [[ cod_erro -ne 0 ]]; then
-    msg "${error_color}ERROR: Houve um erro ao executar o playbook${default_color}"
-    exit $cod_erro
-fi
-
-msg "${ok_color}OK: Playbook executado"
-msg "SUCCESS: As VMs estão configuradas."
