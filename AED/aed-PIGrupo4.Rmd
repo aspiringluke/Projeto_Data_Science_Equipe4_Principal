@@ -1812,7 +1812,396 @@ cat('\n')
 cat('Sessões limpas:\n')
 names(sessoes_limpas)
 
+
+# Média (duracao_sessao)
+media_duracao_sessao = mean(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+max_duracao_sessao = max(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+min_duracao_sessao = min(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+cat('Maior Duração de Sessão:\n')
+round(max_duracao_sessao, 2)
+cat('\n')
+
+cat('Menor Duração de Sessão:\n')
+round(min_duracao_sessao, 2)
+cat('\n')
+
+cat('Média de Duração das Sessões:\n')
+round(media_duracao_sessao, 2)
+cat('\n')
+
+# Mediana
+mediana_duracao_sessao = median(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+cat('Mediana de Duração das Sessões:\n')
+round(mediana_duracao_sessao, 2)
+cat('\n')
+
+# Moda
+sessoes_limpas |> count(duracao_minutos, sort = TRUE)
+
+# Amplitude
+cat('Amplitude Duração das Sessões:\n')
+amplitude_duracao_sessao = max_duracao_sessao - min_duracao_sessao
+amplitude_duracao_sessao
+cat('\n')
+
+# Variância
+variancia_duracao_sessao = var(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão Duração das Sessões:\n')
+dp_duracao_sessao = sqrt(variancia_duracao_sessao)
+round(dp_duracao_sessao, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis Duração das Sessões:\n')
+quantile(sessoes_limpas$duracao_minutos,
+         probs = c(0.25, 0.50, 0.75),
+         na.rm = TRUE)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+cat('\n')
+
+# Calcular Outliers
+q1 = quantile(sessoes_limpas$duracao_minutos, 0.25, na.rm = TRUE)
+q3 = quantile(sessoes_limpas$duracao_minutos, 0.75, na.rm = TRUE)
+
+aiq = q3 - q1
+
+cat('Limites Duração das Sessões:\n')
+limite_inferior_duracao = q1 - 1.5 * aiq
+limite_superior_duracao = q3 + 1.5 * aiq
+
+cat(round(limite_inferior_duracao, 2),
+    "———",
+    round(limite_superior_duracao, 2))
+cat('\n')
+
+# Identificar Valores Atípicos
+sessoes_limpas |> filter(
+  duracao_minutos < limite_inferior_duracao |
+    duracao_minutos > limite_superior_duracao
+) |> select(sessao_id, player_id, duracao_minutos, plataforma) |>
+  arrange(duracao_minutos)
+
+
+# Horários e dias com maior atividade
+# Horários com maior atividade
+cat('Horários com maior atividade:\n')
+
+sessoes_limpas |>
+  mutate(hora = format(data_inicio_sessao, "%H")) |>
+  count(hora, sort = TRUE)
+
+cat('\n')
+
+# Dias da semana com maior atividade
+cat('Dias da semana com maior atividade:\n')
+
+sessoes_limpas |>
+  mutate(dia_semana = weekdays(data_inicio_sessao)) |>
+  count(dia_semana, sort = TRUE)
+
+cat('\n')
+
+# Atividade por dia e horário
+cat('Atividade por dia e horário:\n')
+
+sessoes_limpas |>
+  mutate(
+    hora = format(data_inicio_sessao, "%H"),
+    dia_semana = weekdays(data_inicio_sessao)
+  ) |>
+  count(dia_semana, hora, sort = TRUE)
+
+
+# Evolução dos jogadores durante as sessões
+# Criar variável de evolução
+evolucao_jogadores = sessoes_limpas |>
+  mutate(evolucao = nivel_fim - nivel_inicio)
+
 # Média
+media_evolucao = mean(evolucao_jogadores$evolucao, na.rm = TRUE)
+max_evolucao = max(evolucao_jogadores$evolucao, na.rm = TRUE)
+min_evolucao = min(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+cat('Maior Evolução:\n')
+max_evolucao
+cat('\n')
+
+cat('Menor Evolução:\n')
+min_evolucao
+cat('\n')
+
+cat('Média de Evolução:\n')
+round(media_evolucao, 2)
+cat('\n')
+
+# Mediana
+mediana_evolucao = median(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+cat('Mediana de Evolução:\n')
+mediana_evolucao
+cat('\n')
+
+# Moda
+evolucao_jogadores |> count(evolucao, sort = TRUE)
+
+# Amplitude
+cat('Amplitude da Evolução:\n')
+amplitude_evolucao = max_evolucao - min_evolucao
+amplitude_evolucao
+cat('\n')
+
+# Variância
+variancia_evolucao = var(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão da Evolução:\n')
+dp_evolucao = sqrt(variancia_evolucao)
+round(dp_evolucao, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis da Evolução:\n')
+quantile(evolucao_jogadores$evolucao,
+         probs = c(0.25, 0.50, 0.75),
+         na.rm = TRUE)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(evolucao_jogadores$evolucao, na.rm = TRUE)
+cat('\n')
+
+
+# Relação entre duração da sessão e experiência adquirida
+# Relacionando sessões com partidas
+experiencia_sessoes = partidas_limpas |>
+  group_by(sessao_id) |>
+  summarise(
+    experiencia_ganha = sum(experiencia_ganha, na.rm = TRUE)
+  ) |>
+  left_join(
+    sessoes_limpas |>
+      select(sessao_id, duracao_minutos),
+    by = "sessao_id"
+  )
+
+# Média
+media_experiencia_sessao = mean(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+max_experiencia_sessao = max(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+min_experiencia_sessao = min(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+cat('Maior Experiência por Sessão:\n')
+max_experiencia_sessao
+cat('\n')
+
+cat('Menor Experiência por Sessão:\n')
+min_experiencia_sessao
+cat('\n')
+
+cat('Média de Experiência por Sessão:\n')
+round(media_experiencia_sessao, 2)
+cat('\n')
+
+# Mediana
+mediana_experiencia_sessao = median(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+cat('Mediana de Experiência por Sessão:\n')
+mediana_experiencia_sessao
+cat('\n')
+
+# Moda
+experiencia_sessoes |>
+  count(experiencia_ganha, sort = TRUE)
+
+# Amplitude
+cat('Amplitude da Experiência:\n')
+amplitude_experiencia = max_experiencia_sessao -
+  min_experiencia_sessao
+
+amplitude_experiencia
+cat('\n')
+
+# Variância
+variancia_experiencia = var(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+# Desvio Padrão
+cat('Desvio Padrão da Experiência:\n')
+dp_experiencia = sqrt(variancia_experiencia)
+round(dp_experiencia, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis da Experiência:\n')
+quantile(
+  experiencia_sessoes$experiencia_ganha,
+  probs = c(0.25, 0.50, 0.75),
+  na.rm = TRUE
+)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(experiencia_sessoes$experiencia_ganha, na.rm = TRUE)
+cat('\n')
+
+
+# Experiência adquirida por gênero de jogo
+# Relacionando sessões com partidas
+experiencia_genero = partidas_limpas |>
+  left_join(
+    sessoes_limpas |>
+      select(sessao_id, genero_jogo),
+    by = "sessao_id"
+  )
+
+cat('Experiência média por gênero de jogo:\n')
+
+experiencia_genero |>
+  group_by(genero_jogo) |>
+  summarise(
+    media_experiencia = mean(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(media_experiencia))
+
+cat('Experiência total por gênero de jogo:\n')
+
+experiencia_genero |>
+  group_by(genero_jogo) |>
+  summarise(
+    experiencia_total = sum(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(experiencia_total))
+
+
+# Itens e categorias mais populares
+# Quantidade por item
+cat('Itens mais populares:\n')
+
+itens_compras_limpos |>
+  group_by(item_id) |>
+  summarise(
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(quantidade_total))
+
+# Quantidade por categoria
+itens_populares = itens_compras_limpos |>
+  left_join(
+    itens_limpos |>
+      select(item_id, nome_item, categoria_item),
+    by = "item_id"
+  )
+
+cat('Categorias mais populares:\n')
+
+itens_populares |>
+  group_by(categoria_item) |>
+  summarise(
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(quantidade_total))
+
+# Média
+media_quantidade = mean(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+max_quantidade = max(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+min_quantidade = min(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+cat('Maior Quantidade Comprada:\n')
+max_quantidade
+cat('\n')
+
+cat('Menor Quantidade Comprada:\n')
+min_quantidade
+cat('\n')
+
+cat('Média de Quantidade Comprada:\n')
+round(media_quantidade, 2)
+cat('\n')
+
+# Mediana
+mediana_quantidade = median(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+cat('Mediana de Quantidade Comprada:\n')
+mediana_quantidade
+cat('\n')
+
+# Moda
+itens_compras_limpos |>
+  count(quantidade, sort = TRUE)
+
+
+# Evolução do faturamento ao longo do tempo
+faturamento = itens_compras_limpos |>
+  left_join(
+    compras_limpas |>
+      select(compra_id, data_compra),
+    by = "compra_id"
+  )
+
+cat('Faturamento por data:\n')
+
+faturamento |>
+  group_by(data_compra) |>
+  summarise(
+    faturamento = sum(
+      valor_total_item,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(data_compra)
+
+# Média (valor_total_item)
 media_valor_total_item = mean(itens_compras_limpos$valor_total_item, na.rm = TRUE)
 max_valor_total_item = max(itens_compras_limpos$valor_total_item, na.rm = TRUE)
 min_valor_total_item = min(itens_compras_limpos$valor_total_item, na.rm = TRUE)
@@ -1879,44 +2268,138 @@ itens_compras_limpos |> filter(
   valor_total_item < limite_inferior |
     valor_total_item > limite_superior
 ) |> select(compra_id, item_id, valor_total_item) |> arrange(valor_total_item)
+
+
+# Impacto dos descontos nas compras
+# Média
+media_desconto = mean(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+max_desconto = max(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+min_desconto = min(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+cat('Maior Desconto:\n')
+round(max_desconto, 2)
+cat('\n')
+
+cat('Menor Desconto:\n')
+round(min_desconto, 2)
+cat('\n')
+
+cat('Média de Desconto:\n')
+round(media_desconto, 2)
+cat('\n')
+
+# Mediana
+mediana_desconto = median(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+cat('Mediana de Desconto:\n')
+round(mediana_desconto, 2)
+cat('\n')
+
+# Moda
+itens_compras_limpos |>
+  count(desconto, sort = TRUE)
+
+# Amplitude
+cat('Amplitude do Desconto:\n')
+amplitude_desconto = max_desconto - min_desconto
+round(amplitude_desconto, 2)
+cat('\n')
+
+# Variância
+variancia_desconto = var(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+# Desvio Padrão
+cat('Desvio Padrão do Desconto:\n')
+dp_desconto = sqrt(variancia_desconto)
+round(dp_desconto, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis do Desconto:\n')
+quantile(
+  itens_compras_limpos$desconto,
+  probs = c(0.25, 0.50, 0.75),
+  na.rm = TRUE
+)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+cat('\n')
+
+# Relacionando desconto com valor total da compra
+cat('Desconto e Valor Total do Item:\n')
+
+itens_compras_limpos |>
+  select(desconto, quantidade, valor_unitario, valor_total_item) |>
+  summary()
 ```
 
-1. Duração das sessões por plataforma
+1.  Duração das sessões por plataforma
+
 ```{r}
 
 ```
 
-2. Horários e dias com maior atividade
+2.  Horários e dias com maior atividade
+
 ```{r}
 
 ```
 
-3. Evolução dos jogadores durante as sessões
+3.  Evolução dos jogadores durante as sessões
+
 ```{r}
 
 ```
 
-4. Relação entre duração da sessão e experiência adquirida
+4.  Relação entre duração da sessão e experiência adquirida
+
 ```{r}
 
 ```
 
-5. Experiência adquirida por gênero de jogo
+5.  Experiência adquirida por gênero de jogo
+
 ```{r}
 
 ```
 
-6. Itens e categorias mais populares
+6.  Itens e categorias mais populares
+
 ```{r}
 
 ```
 
-7. Evolução do faturamento ao longo do tempo
+7.  Evolução do faturamento ao longo do tempo
+
 ```{r}
 
 ```
 
-8. Impacto dos descontos nas compras
+8.  Impacto dos descontos nas compras
+
 ```{r}
 
 ```
