@@ -47,11 +47,11 @@ A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem 
 
 ```{r Etapa 1 - Importação do Dataset}
  install.packages("dplyr")
-install.packages("lubridate")
-install.packages("stringr")
-install.packages("stringi")
-install.packages("ggplot2")
-install.packages("here")
+ install.packages("lubridate")
+ install.packages("stringr")
+ install.packages("stringi")
+ install.packages("ggplot2")
+ install.packages("here")
 
 
 library(dplyr)
@@ -2365,6 +2365,8 @@ itens_compras_limpos |>
 1.  Duração das sessões por plataforma
 
 ```{r}
+sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
+
 ggplot(
   sessoes_limpas,
   aes(
@@ -2377,6 +2379,10 @@ ggplot(
   title = "Duração das Sessões por Plataforma",
   x = "Plataforma",
   y = "Duração (min)"
+) + scale_y_continuous(
+  labels = scales::label_number(big.mark = ".", decimal.mark = ","),
+  limits = c(0, 1000),
+  breaks = seq(0, 1000, by = 200)
 ) + theme_minimal()
 ```
 
@@ -2388,6 +2394,7 @@ sessoes_limpas |>
     hora = format(data_inicio_sessao, "%H"),
     dia_semana = weekdays(data_inicio_sessao)
   ) |>
+  filter(!is.na(hora), !is.na(dia_semana)) |>
   count(hora, dia_semana, name = "quantidade") |>
   ggplot(
     aes(
@@ -2397,7 +2404,7 @@ sessoes_limpas |>
     )
   ) +
   geom_point(
-    size = 2.5,
+    size = 1.25,
     alpha = 0.8
   ) +
   labs(
@@ -2405,13 +2412,17 @@ sessoes_limpas |>
     x = "Hora",
     y = "Quantidade de Sessões",
     color = "Dias da Semana"
-  ) +
+  ) + scale_y_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  )
   theme_minimal()
 ```
 
 3.  Evolução dos jogadores durante as sessões
 
 ```{r}
+evolucao_jogadores = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
+
 ggplot(
   evolucao_jogadores,
   aes(
@@ -2438,7 +2449,21 @@ ggplot(
 5.  Experiência adquirida por gênero de jogo
 
 ```{r}
-
+ggplot(
+  experiencia_genero,
+  aes(
+    x = genero_jogo,
+    y = experiencia_ganha
+  )
+) + geom_boxplot(
+  fill = "steelblue"
+) + labs(
+  title = "Experiência adquirida por Gênero de Jogo",
+  x = "Gênero de Jogo",
+  y = "Experiência Adquirida"
+) + scale_x_discrete(
+  expand = expansion(add = 1)
+) + theme_minimal()
 ```
 
 6.  Itens e categorias mais populares
