@@ -29,45 +29,47 @@ Tecnologias e conceitos
 - Hive, Pig, Sqoop e HBase: conceitos apresentados por meio de exemplos em Python/SQLite; não foram executados como serviços reais nesta etapa.
 
 ### 🔄 Fluxo dos dados
-Geração de dados sintéticos
-          ↓
-     Dados brutos
-          ↓
-      ETL / limpeza
-          ↓
-Data Lake (arquivos CSV tratados)
-          ├──────────────→ Data Warehouse (modelo dimensional em SQLite)
-          ↓
-       HDFS
-          ↓
-YARN + Hadoop Streaming MapReduce
-          ↓
-Resultados por gênero de jogo
-          ↓
-Análises, tabelas e gráficos no notebook
+
+Geração de dados sintéticos<br>
+          ↓<br>
+     Dados brutos<br>
+          ↓<br>
+      ETL / limpeza<br>
+          ↓<br>
+Data Lake (arquivos CSV tratados)<br>
+          ├──────────────→ Data Warehouse (modelo dimensional em SQLite)<br>
+          ↓<br>
+       HDFS<br>
+          ↓<br>
+YARN + Hadoop Streaming MapReduce<br>
+          ↓<br>
+Resultados por gênero de jogo<br>
+          ↓<br>
+Análises, tabelas e gráficos no notebook<br>
 
 O processamento com Hadoop foi realizado em um ambiente Ubuntu 24.04 no WSL2, em nó único, com Hadoop 3.4.2 e Java 17. Essa configuração demonstra o funcionamento dos componentes, mas não equivale a um cluster com vários computadores.
 
 ### 🗂️ Estrutura dos arquivos
 A estrutura abaixo corresponde aos diretórios e arquivos utilizados na etapa de Big Data do projeto local:
-big_data/
-├── data_lake/
-│   └── processed/
-│       ├── compras_limpo.csv
-│       ├── itens_compras_limpo.csv
-│       ├── itens_limpo.csv
-│       ├── jogadores_limpo.csv
-│       ├── partidas_limpo.csv
-│       └── sessoes_limpo.csv
-├── hadoop/
-│   ├── instalar_hadoop.sh
-│   ├── configurar_hadoop.sh
-│   ├── iniciar_hadoop.sh
-│   └── scripts/
-│       ├── mapper.py
-│       └── reducer.py
-└── notebook/
-    └── hadoop.ipynb
+
+big_data/<br>
+├── data_lake/<br>
+│   └── processed/<br>
+│       ├── compras_limpo.csv<br>
+│       ├── itens_compras_limpo.csv<br>
+│       ├── itens_limpo.csv<br>
+│       ├── jogadores_limpo.csv<br>
+│       ├── partidas_limpo.csv<br>
+│       └── sessoes_limpo.csv<br>
+├── hadoop/<br>
+│   ├── instalar_hadoop.sh<br>
+│   ├── configurar_hadoop.sh<br>
+│   ├── iniciar_hadoop.sh<br>
+│   └── scripts/<br>
+│       ├── mapper.py<br>
+│       └── reducer.py<br>
+└── notebook/<br>
+    └── hadoop.ipynb<br>
 
 > [!NOTE]
 > O conteúdo disponível no GitHub pode diferir até a publicação final da pasta big_data/. **Verifique os arquivos antes de reproduzir o procedimento em outra máquina.**
