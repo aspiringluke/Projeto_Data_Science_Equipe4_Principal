@@ -52,6 +52,7 @@ O processamento com Hadoop foi realizado em um ambiente Ubuntu 24.04 no WSL2, em
 ### 🗂️ Estrutura dos arquivos
 A estrutura abaixo corresponde aos diretórios e arquivos utilizados na etapa de Big Data do projeto local:
 
+<pre>
 big_data/<br>
 ├── data_lake/<br>
 │   └── processed/<br>
@@ -70,6 +71,7 @@ big_data/<br>
 │       └── reducer.py<br>
 └── notebook/<br>
     └── hadoop.ipynb<br>
+</pre>
 
 > [!NOTE]
 > O conteúdo disponível no GitHub pode diferir até a publicação final da pasta big_data/. **Verifique os arquivos antes de reproduzir o procedimento em outra máquina.**
