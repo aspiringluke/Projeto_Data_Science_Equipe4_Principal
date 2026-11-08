@@ -53,24 +53,24 @@ O processamento com Hadoop foi realizado em um ambiente Ubuntu 24.04 no WSL2, em
 A estrutura abaixo corresponde aos diretórios e arquivos utilizados na etapa de Big Data do projeto local:
 
 <pre>
-big_data/<br>
-├── data_lake/<br>
-│   └── processed/<br>
-│       ├── compras_limpo.csv<br>
-│       ├── itens_compras_limpo.csv<br>
-│       ├── itens_limpo.csv<br>
-│       ├── jogadores_limpo.csv<br>
-│       ├── partidas_limpo.csv<br>
-│       └── sessoes_limpo.csv<br>
-├── hadoop/<br>
-│   ├── instalar_hadoop.sh<br>
-│   ├── configurar_hadoop.sh<br>
-│   ├── iniciar_hadoop.sh<br>
-│   └── scripts/<br>
-│       ├── mapper.py<br>
-│       └── reducer.py<br>
-└── notebook/<br>
-    └── hadoop.ipynb<br>
+big_data/
+├── data_lake/
+│   └── processed/
+│       ├── compras_limpo.csv
+│       ├── itens_compras_limpo.csv
+│       ├── itens_limpo.csv
+│       ├── jogadores_limpo.csv
+│       ├── partidas_limpo.csv
+│       └── sessoes_limpo.csv
+├── hadoop/
+│   ├── instalar_hadoop.sh
+│   ├── configurar_hadoop.sh
+│   ├── iniciar_hadoop.sh
+│   └── scripts/
+│       ├── mapper.py
+│       └── reducer.py
+└── notebook/
+    └── hadoop.ipynb
 </pre>
 
 > [!NOTE]
