@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 HADOOP_VERSION="3.4.2"
