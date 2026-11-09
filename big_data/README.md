@@ -26,6 +26,8 @@ Tecnologias e conceitos
 - Hadoop Streaming / MapReduce: contagem de sessões por gênero de jogo.
 - YARN: gerenciamento dos recursos durante o processamento MapReduce.
 - Python, Pandas, Matplotlib e SQLite: leitura, validação, análise, visualização e demonstrações didáticas.
+- Apache Spark (PySpark): processamento com Structured Streaming, DataFrames e Spark SQL, executado em modo local no Google Colab.
+- Scikit-learn: regressão, avaliação de classificação e clusterização (KMeans) para análise complementar.
 - Hive, Pig, Sqoop e HBase: conceitos apresentados por meio de exemplos em Python/SQLite; não foram executados como serviços reais nesta etapa.
 
 ### 🔄 Fluxo dos dados
@@ -38,6 +40,8 @@ Geração de dados sintéticos<br>
           ↓<br>
 Data Lake (arquivos CSV tratados)<br>
           ├──────────────→ Data Warehouse (modelo dimensional em SQLite)<br>
+          ├──────────────→ Spark (Structured Streaming) → indicadores e gráficos<br>
+          ├──────────────→ Machine Learning (regressão, classificação, clusterização)<br>
           ↓<br>
        HDFS<br>
           ↓<br>
@@ -70,7 +74,10 @@ big_data/
 │       ├── mapper.py
 │       └── reducer.py
 └── notebook/
-    └── hadoop.ipynb
+    ├── hadoop.ipynb
+    ├── OLAP.ipynb
+    ├── spark.ipynb
+    └── ml.ipynb
 </pre>
 
 > [!NOTE]
@@ -116,6 +123,30 @@ A execução real do Hadoop Streaming, concluída em 05/11/2026, processou 37.36
 |Total     | 37.366|
 
 O gênero FPS apresentou a maior quantidade de sessões.
+
+### ⚡ Processamento com Apache Spark
+
+O notebook `spark.ipynb` segue o padrão da Aula 9 (Structured Streaming). Um processo em segundo plano lê o arquivo `sessoes_limpo.csv` em ordem de data e envia lotes de 2.000 sessões, a cada 5 segundos, para uma pasta de entrada. O Spark processa cada lote assim que ele chega.
+
+O notebook também carrega jogadores, partidas, compras e itens como DataFrames, faz seleção, filtros, agrupamentos e junções, executa consultas Spark SQL, calcula 13 indicadores e gera 8 gráficos, cada um com interpretação.
+
+O Spark foi executado em modo local no Google Colab, e o fluxo de dados é uma simulação feita a partir do CSV tratado. Ele não foi executado sobre o cluster Hadoop. Em um cluster, o mesmo código leria os arquivos do HDFS e rodaria sobre o YARN, trocando os caminhos e o parâmetro `master`.
+
+O Spark processou as 37.366 sessões, o mesmo total obtido no MapReduce.
+
+### 🤖 Análise complementar (Machine Learning)
+
+O notebook `ml.ipynb` segue o padrão das Aulas 5, 6 e 7 (Pipeline + ColumnTransformer). As três técnicas foram avaliadas, e só duas se mostraram adequadas:
+
+| Técnica | Pergunta | Resultado |
+|---|---|---|
+| Classificação | Prever o resultado da partida antes de ela acontecer | Não recomendada: sem as informações da própria partida, o modelo não supera o baseline |
+| Regressão | Estimar a pontuação da partida | Viável: R² = 0,55 (baseline = 0) |
+| Clusterização | Identificar perfis de jogadores | Adequada: 4 perfis, com Silhouette baixo (0,14) |
+
+Na classificação, o desempenho só melhora ao usar pontuação e XP, que só existem depois da partida (vazamento de dados). Por isso essa variante foi descartada.
+
+A clusterização deve ser lida como segmentação exploratória, pois os grupos têm fronteiras sobrepostas.
 
 ### ▶️ Como executar o notebook
 
@@ -179,6 +210,10 @@ hdfs dfs -cat /telemetria/resultados/sessoes_por_genero/part-00000
 
 O script big_data/hadoop/iniciar_hadoop.sh foi usado no ambiente de desenvolvimento para iniciar os serviços. Sua execução em outra máquina pressupõe que o Hadoop e suas configurações tenham sido preparados previamente. Não formate o NameNode de uma instalação que já contenha dados.
 
+5. **Execute os notebooks de Spark e ML (Google Colab)**
+
+Os notebooks `spark.ipynb` e `ml.ipynb` foram feitos para o Google Colab. Coloque os seis arquivos `_limpo.csv` em uma pasta do Google Drive (por padrão, `PI_telemetria_de_jogos`), ajuste a variável `PASTA` no início de cada notebook e execute as células em sequência. O `spark.ipynb` leva cerca de 1,5 minuto para concluir a coleta simulada.
+
 ### 🧪 Validação e portabilidade
 
 Para verificar a reprodução do projeto em outro computador:
@@ -195,3 +230,5 @@ A portabilidade do notebook Python e a instalação do ambiente Hadoop são etap
 A documentação do Projeto Integrado descreve a caracterização do problema, os 5 Vs do Big Data, a arquitetura, o Data Lake, o Data Warehouse, a modelagem dimensional e a implementação do Hadoop.
 
 O notebook big_data/notebook/hadoop.ipynb apresenta os procedimentos, as demonstrações e as análises dos resultados.
+
+Os notebooks `spark.ipynb` e `ml.ipynb` apresentam o processamento com Apache Spark e a análise complementar de Machine Learning.
