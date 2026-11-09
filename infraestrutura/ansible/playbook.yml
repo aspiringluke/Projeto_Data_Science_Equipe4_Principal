@@ -1,4 +1,21 @@
 ---
+- name: Configs gerais
+  hosts: maquinas
+  become: true
+  tasks:
+    - name: Instalar pacotes necessários
+      ansible.builtin.apt:
+        name: rsync
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Habilitar e iniciar servico rsync
+      ansible.builtin.systemd:
+        name: rsync
+        enabled: true
+        state: started
+
 - name: Configurar VM do Gerador
   hosts: gerador
   become: true
@@ -95,26 +112,6 @@
           {{ app_name }}:{{ app_tag }}
       when: needs_restart
       changed_when: true
-    
-    - name: Criar unidade de serviço Systemd para o servidor HTTP
-      ansible.builtin.copy:
-        dest: /etc/systemd/system/csv-server.service
-        mode: '0644'
-        content: |
-          [Unit]
-          Description=Servidor HTTP para compartilhamento de CSVs
-          After=network.target
-
-          [Service]
-          Type=simple
-          User=aluno
-          WorkingDirectory={{ dir_csvs }}
-          ExecStart=/usr/bin/python3 -m http.server 8000
-          Restart=always
-          RestartSec=3
-
-          [Install]
-          WantedBy=multi-user.target
 
     - name: Garantir que o diretório de CSVs existe
       ansible.builtin.file:
@@ -123,13 +120,6 @@
         owner: aluno
         group: aluno
         mode: '0744'
-
-    - name: Iniciar e habilitar o serviço csv-server
-      ansible.builtin.systemd:
-        name: csv-server
-        state: started
-        enabled: true
-        daemon_reload: true
 
 
 - name: Configurar VM de Tratamento
@@ -171,11 +161,55 @@
       loop:
         - pipeline.py
         - etl-script.R
-    
-    - name: Criar Cronjob para executar a pipeline periodicamente
-      ansible.builtin.cron:
-        name: "Executar pipeline de download de CSVs"
-        minute: "*"
-        job: "python3 /opt/projeto/etl/pipeline.py >> /opt/projeto/etl/pipeline.log 2>&1"
-        user: aluno
-        state: present
+
+    - name: Criar arquivo de configuracao /etc/rsyncd.conf
+      ansible.builtin.copy:
+        dest: /etc/rsyncd.conf
+        content: |
+          pid file = /var/run/rsyncd.pid
+          log file = /var/log/rsyncd.log
+
+          [recebe_csv]
+              path = /opt/projeto/csvs
+              comment = Staging CSVs
+              read only = no
+              list = yes
+              auth users = 
+              uid = aluno
+              gid = aluno
+
+    - name: Habilitar e iniciar servico rsync
+      ansible.builtin.systemd:
+        name: rsync
+        enabled: true
+        state: started
+
+    - name: Criar arquivo da unit do Systemd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/pipeline.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Servico Daemon de Orquestracao ETL
+          After=network.target rsync.service
+
+          [Service]
+          Type=simple
+          User=aluno
+          Group=aluno
+          WorkingDirectory=/opt/projeto/etl
+          ExecStart=/usr/bin/python3 /opt/projeto/etl/pipeline.py
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recarregar daemon do systemd e ativar o servico
+      ansible.builtin.systemd:
+        name: pipeline.service
+        daemon_reload: true
+        enabled: true
+        state: started
