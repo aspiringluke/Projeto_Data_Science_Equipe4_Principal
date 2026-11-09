@@ -2463,13 +2463,38 @@ ggplot(
   y = "Experiência Adquirida"
 ) + scale_x_discrete(
   expand = expansion(add = 1)
-) + theme_minimal()
+) + theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
-6.  Itens e categorias mais populares
+6.  Itens mais populares por categoria
 
 ```{r}
+itens_populares = itens_compras_limpos |>
+  left_join(
+    itens_limpos |>
+      select(item_id, categoria_item),
+    by = "item_id"
+  ) |>
+  group_by(categoria_item) |>
+  summarise(
+    quantidade_total = sum(quantidade, na.rm = TRUE)
+  )
 
+ggplot(
+  itens_populares,
+  aes(
+    x = categoria_item,
+    y = quantidade_total
+  )
+) + geom_col() + labs(
+  title = "Itens mais populares por categoria",
+  x = "Categoria",
+  y = "Quantidade de Itens Comprados"
+) + theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
 7.  Evolução do faturamento ao longo do tempo
