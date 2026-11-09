@@ -232,3 +232,54 @@ A documentação do Projeto Integrado descreve a caracterização do problema, o
 O notebook big_data/notebook/hadoop.ipynb apresenta os procedimentos, as demonstrações e as análises dos resultados.
 
 Os notebooks `spark.ipynb` e `ml.ipynb` apresentam o processamento com Apache Spark e a análise complementar de Machine Learning.
+
+### 📌 Complemento da documentação para validação
+
+As seções anteriores foram preservadas. Este complemento reúne informações adicionais sobre o problema, a arquitetura e as evidências da implementação.
+
+#### Caracterização do problema e os 5 Vs
+
+A telemetria de jogos digitais envolve registros de jogadores, sessões, partidas, compras e itens. Neste projeto, os dados são **sintéticos** e permitem demonstrar o tratamento e a análise de conjuntos de dados com diferentes estruturas e frequências de geração.
+
+- **Volume:** múltiplos conjuntos de dados relacionados, incluindo 37.366 sessões e 58.312 partidas na base analisada.
+- **Velocidade:** a geração e a chegada de registros são representadas no Spark por lotes simulados, sem afirmar coleta contínua de um jogo real.
+- **Variedade:** os arquivos abrangem entidades diferentes, como jogadores, sessões, partidas, compras e itens.
+- **Veracidade:** o ETL e as verificações de integridade buscam reduzir inconsistências, duplicidades e problemas de relacionamento.
+- **Valor:** os dados permitem produzir indicadores de engajamento, comportamento e monetização para apoiar decisões.
+
+#### Justificativa da arquitetura
+
+O **Data Lake** mantém os arquivos em suas etapas bruta e tratada, preservando a separação entre a origem e o resultado do ETL. O **Data Warehouse** organiza os dados tratados em um modelo dimensional para consultas analíticas. O **Hadoop/HDFS** demonstra armazenamento distribuído em ambiente de nó único, e o **MapReduce** processa a contagem de sessões por gênero. O **Spark** demonstra processamento com DataFrames, SQL e chegada simulada de lotes. O **Machine Learning** complementa as análises com modelos preditivos e segmentação.
+
+O fluxo implementado utiliza componentes e ambientes distintos. A execução do Spark em modo local no Colab **não representa integração operacional com o cluster Hadoop**, e o processamento em lotes do CSV **não representa captura em tempo real de eventos de um jogo**.
+
+#### Análise OLAP (Online Analytical Processing)
+
+O notebook `OLAP.ipynb` apresenta análises multidimensionais dos dados de telemetria de jogos digitais, utilizando Python, Pandas e SQLite para organizar e consultar as informações de jogadores, sessões, partidas, compras e itens.
+
+A análise OLAP permite explorar os dados por diferentes perspectivas, realizando operações de agregação, filtragem e detalhamento para identificar padrões de comportamento e apoiar a tomada de decisões.
+
+O notebook contempla consultas SQL, indicadores analíticos, tabelas, gráficos e a visualização interativa de um cubo OLAP 3D, permitindo examinar os dados por diferentes dimensões.
+
+As análises abordam o engajamento dos jogadores, a duração das sessões, o desempenho nas partidas e o comportamento de compras, oferecendo uma visão multidimensional das informações disponíveis.
+
+O OLAP complementa as etapas de processamento com Hadoop e Spark e as análises de Machine Learning, contribuindo para transformar os dados tratados em informações úteis para o acompanhamento do desempenho dos jogos digitais.
+
+#### Evidências e limites da validação
+
+- **Hadoop:** o notebook registra a comparação da contagem MapReduce com Python, totalizando 37.366 sessões em 11 gêneros. A evidência histórica da execução no HDFS/YARN não deve ser confundida com uma nova execução em outra máquina.
+- **Spark:** o notebook contém saídas de execução, indicadores e gráficos; a coleta simulada é encerrada ao final do processamento.
+- **Machine Learning:** a regressão Random Forest obteve R² próximo de 0,55; a classificação foi limitada pela ausência de variáveis preditivas sem vazamento de dados; a clusterização em quatro grupos teve Silhouette próximo de 0,14, indicando separação fraca entre perfis.
+- **Portabilidade:** ainda é necessário conferir a execução completa em ambiente limpo, com as dependências e os caminhos de dados configurados.
+
+#### Localização dos notebooks no repositório
+
+Na branch `big-data`, os arquivos estão em `big_data/notebooks/` (**plural**), com os seguintes nomes:
+
+- [`hadoop.ipynb`](notebooks/hadoop.ipynb)
+- [`Spark.ipynb`](notebooks/Spark.ipynb)
+- [`ML.ipynb`](notebooks/ML.ipynb)
+- [`OLAP.ipynb`](notebooks/OLAP.ipynb)
+
+Esta seção registra os caminhos efetivos sem alterar os comandos ou descrições originais das seções anteriores.
+
