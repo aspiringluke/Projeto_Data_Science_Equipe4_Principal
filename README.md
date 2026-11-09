@@ -53,6 +53,12 @@ Explicações técnicas da infraestrutura encontram-se em [infraestrutura/README
 ## 📈 Análise Exploratória de Dados
 
 ## 🗄️ Big Data
+A etapa de **Big Data** é responsável pelo armazenamento, processamento e análise dos dados sintéticos de telemetria de jogos digitais. Para isso, utilizamos um **Data Lake** para organizar os dados brutos e tratados, um **Data Warehouse** com modelagem dimensional para facilitar consultas analíticas, **Apache Hadoop** para demonstrar armazenamento e processamento com HDFS e MapReduce, e **Apache Spark** para análises e simulação de processamento em lotes. Também aplicamos técnicas de **Machine Learning** para previsão e identificação de perfis de jogadores, além de análises **OLAP** para explorar os dados por diferentes perspectivas.
+
+O objetivo é transformar os registros de jogadores, sessões, partidas e compras em indicadores úteis para compreender o comportamento dos usuários e apoiar a tomada de decisões. A integração completa com a pipeline automatizada ainda está em desenvolvimento.
+
+ **Documentação completa, notebooks e resultados:** [Big Data — Equipe 4](big_data/README.md)
+
 
 ## 📊 Probabilidade e Estatística
 
