@@ -57,7 +57,7 @@ A etapa de **Big Data** é responsável pelo armazenamento, processamento e aná
 
 O objetivo é transformar os registros de jogadores, sessões, partidas e compras em indicadores úteis para compreender o comportamento dos usuários e apoiar a tomada de decisões. A integração completa com a pipeline automatizada ainda está em desenvolvimento.
 
- **Documentação completa, notebooks e resultados:** [Big Data]([Big Data — Equipe 4](https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal/blob/big-data/big_data/README.md))
+ **Documentação completa, notebooks e resultados:** [Big Data]([Big Data](https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal/blob/big-data/big_data/README.md))
 
 
 ## 📊 Probabilidade e Estatística
