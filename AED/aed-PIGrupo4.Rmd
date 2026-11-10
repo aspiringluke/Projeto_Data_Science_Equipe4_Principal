@@ -37,21 +37,23 @@ Esse documento tem como principal objetivo relatar os passos tomados para ler, a
 
 ## Etapa 1 - Importação do Dataset {#etapa-1---importação-do-dataset}
 
-À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
+Inicialmente, importamos cada arquivo .csv gerado pelo simulador de dados, disponível no repositório do gerador no GitHub: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git`. Os datasets contêm “sujeiras” (inconsistências, formatos irregulares, valores ausentes ou duplicados) que serão tratadas na etapa 4 desta análise.
 
-Será instalado e carregado o pacote `dplyr` que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+Para isso, serão instalados e carregados os seguintes pacotes:
 
-Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
-
-A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem a visualização e interpretação dos dados por meio de diferentes tipos de gráficos, como gráficos de barras, linhas, dispersão e histogramas, etc.
+- **dplyr**: seleção, filtragem, criação de variáveis, agrupamento e ordenação dos dados.
+- **lubridate**: conversão e manipulação de datas, essencial para padronizar as colunas temporais.
+- **stringr** e **stringi**: padronização de textos, como remoção de espaços extras, ajuste de caixa e remoção de acentos.
+- **ggplot2**: geração de gráficos (barras, linhas, dispersão, histogramas) para visualização e interpretação dos dados.
+- **here**: a função here() monta os caminhos dos arquivos a partir da raiz do projeto, dispensando caminhos absolutos e a utilização de `setwd()`. Assim, o script funciona em qualquer computador, o que facilita o trabalho em equipe e a reprodutibilidade.
 
 ```{r Etapa 1 - Importação do Dataset}
- # install.packages("dplyr")
- # install.packages("lubridate")
- # install.packages("stringr")
- # install.packages("stringi")
- # install.packages("ggplot2")
- # install.packages("here")
+ # # install.packages("dplyr")
+ # # install.packages("lubridate")
+ # # install.packages("stringr")
+ # # install.packages("stringi")
+ # # install.packages("ggplot2")
+ # # install.packages("here")
 
 
 library(dplyr)
@@ -2364,7 +2366,7 @@ itens_compras_limpos |>
 
 1.  Duração das sessões por plataforma
 
-```{r}
+```{r Gráfico — Duração das sessões por plataforma}
 sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
 
 ggplot(
@@ -2388,7 +2390,7 @@ ggplot(
 
 2.  Horários e dias com maior atividade
 
-```{r}
+```{r Gráfico — Horários e dias com maior atividade}
 sessoes_limpas |>
   mutate(
     hora = format(data_inicio_sessao, "%H"),
@@ -2420,7 +2422,7 @@ sessoes_limpas |>
 
 3.  Evolução dos jogadores durante as sessões
 
-```{r}
+```{r Gráfico — Evolução dos jogadores durante as sessões}
 evolucao_jogadores = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
 
 ggplot(
@@ -2442,13 +2444,13 @@ ggplot(
 
 4.  Relação entre duração da sessão e experiência adquirida
 
-```{r}
+```{r Gráfico — Relação entre a duração da sessão e experiência adquirida}
 
 ```
 
 5.  Experiência adquirida por gênero de jogo
 
-```{r}
+```{r Gráfico — Experiência adquirida por gênero de jogo}
 ggplot(
   experiencia_genero,
   aes(
@@ -2465,12 +2467,14 @@ ggplot(
   expand = expansion(add = 1)
 ) + theme_minimal() + theme(
   axis.text.x = element_text(angle = 90)
+) + theme(
+  axis.text.x = element_text(angle = 90)
 )
 ```
 
 6.  Itens mais populares por categoria
 
-```{r}
+```{r Gráfico — Itens mais populares por categoria}
 itens_populares = itens_compras_limpos |>
   left_join(
     itens_limpos |>
@@ -2499,13 +2503,13 @@ ggplot(
 
 7.  Evolução do faturamento ao longo do tempo
 
-```{r}
+```{r Gráfico — Evolução do faturamento ao longo do tempo}
 
 ```
 
 8.  Impacto dos descontos nas compras
 
-```{r}
+```{r Gráfico — Impacto dos descontos nas compras}
 
 ```
 
