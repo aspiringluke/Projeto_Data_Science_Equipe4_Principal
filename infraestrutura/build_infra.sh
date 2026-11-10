@@ -3,14 +3,14 @@
 case $TERM in
 xterm-color | *-256color)
     error_color='\e[01;31m'
-    warn_color='\e[01;33m'
+    #warn_color='\e[01;33m' # não utilizada
     ok_color='\e[01;32m'
     default_color='\e[0m'
     ;;
 esac
 
 SCRIPT_NAME=${0##*/}
-VERSION="$SCRIPT_NAME: 1.0 - Equipe 4"
+VERSION="$SCRIPT_NAME: 1.1 - Equipe 4"
 HELP_MSG="
 $VERSION
 
@@ -95,9 +95,10 @@ done
 ###########################
 
 if [[ REBUILD -eq 1 ]]; then
-    cd iac
+    cd iac || exit
     echo yes | tofu destroy
 
+    # shellcheck disable=SC2086
     for i in {1..255}; do ssh-keygen -R 192.168.122.${i}; done > /dev/null 2>&1
 
     cd ..
@@ -105,7 +106,7 @@ if [[ REBUILD -eq 1 ]]; then
 fi
 
 
-cd iac
+cd iac || exit
 
 if [[ ! -f "cloud_init.cfg" || ! -f "main.tf" ]]; then
     msg "${error_color}ERROR: Os arquivos necessários para executar a infraestrutura não foram encontrados neste diretório. Abortando${default_color}"
@@ -117,18 +118,25 @@ tofu init
 msg "${ok_color}OK: Providers baixados${default_color}"
 
 msg "Validando..."
-tofu validate
-[[ $? -ne 0 ]] && msg "${error_color}ERROR: Validação falhou${default_color}" && exit 1
+if ! tofu validate; then
+    msg "${error_color}ERROR: Validação falhou${default_color}"
+    exit 1
+fi
 
 msg "Planejando..."
-tofu plan -out=tofu_plan
-[[ $? -ne 0 ]] && msg "${error_color}ERROR: Planejamento falhou${default_color}" && exit 1
+if ! tofu plan -out=tofu_plan; then
+    msg "${error_color}ERROR: Planejamento falhou${default_color}"
+    exit 1
+fi
+
 msg "${ok_color}OK: Planejamento feito${default_color}"
 
 if [[ PLAN_ONLY -ne 1 ]]; then
     msg "Aplicando o plano..."
-    tofu apply tofu_plan
-    [[ $? -ne 0 ]] && msg "${error_color}ERROR: Algo deu errado${default_color}" && exit 1
+    if ! tofu apply tofu_plan; then
+        msg "${error_color}ERROR: Algo deu errado${default_color}"
+        exit 1
+    fi
     msg "${ok_color}SUCCESS: Infraestrutura construída.${default_color}"
     msg "Teste o acesso com: ssh aluno@192.168.122.X -i ~/.ssh/devops_lab"
 fi
