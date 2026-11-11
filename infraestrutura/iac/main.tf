@@ -15,15 +15,15 @@ locals {
   # Mapeamento com os nomes das máquinas, configurações de hardware e rede
   vms = {
     "vm-gerador-python" = {
-      memory = 2048
+      memory = 1024 + 512
       vcpu   = 2
       size   = 10737418240  # 10GB
       ip     = "192.168.122.10"
       mac    = "52:54:00:00:00:01"
     },
     "vm-tratamento-R" = {
-      memory = 2048#4096
-      vcpu   = 2#4
+      memory = 2048 + 1024
+      vcpu   = 4
       size   = 21474836480  # 20GB
       ip     = "192.168.122.11"
       mac    = "52:54:00:00:00:02"
