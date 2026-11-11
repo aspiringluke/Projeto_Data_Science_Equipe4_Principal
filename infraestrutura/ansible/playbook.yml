@@ -1,74 +1,252 @@
 ---
-- name: Preparando ambiente para o gerador
-  hosts: Servidores
+- name: Configs gerais
+  hosts: maquinas
   become: true
-
   tasks:
-    - name: Atualizar lista de pacotes
-      apt:
+    - name: Instalar pacotes necessários
+      ansible.builtin.apt:
+        name: rsync
+        state: present
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Instalar Python e dependencias
-      apt:
-        name:
-          - python3
-          - python3-pip
-          - python3-venv
+- name: Configurar VM de Tratamento
+  hosts: tratamento
+  become: true
+  vars:
+    dir_csvs: "/opt/projeto/csvs"
+  tasks:
+    - name: Instalar R
+      ansible.builtin.apt:
+        name: r-base-core
         state: present
+        update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Criar diretorio do projeto
-      file:
-        path: /home/aluno/projeto
+    - name: Habilitar e iniciar servico rsync
+      ansible.builtin.systemd:
+        name: rsync
+        enabled: true
+        state: started
+
+    - name: Garantir que o diretório de CSVs existe
+      ansible.builtin.file:
+        path: "{{ dir_csvs }}"
         state: directory
         owner: aluno
         group: aluno
         mode: '0755'
-
-    - name: Criar ambiente virtual do Python
-      command: python3 -m venv /home/aluno/projeto/venv
-      args:
-        creates: /home/aluno/projeto/venv/bin/python
-
-    - name: Instalar bibliotecas do gerador
-      pip:
-        name:
-          - babel==2.18.0
-          - Faker==40.38.0
-          - geonamescache==3.0.2
-          - pycountry==26.2.16
-          - typing_extensions==4.16.0
-        virtualenv: /home/aluno/projeto/venv
-
-    - name: Ajustar dono do ambiente virtual
-      file:
-        path: /home/aluno/projeto/venv
+    
+    - name: Garantir diretório de armazenamento de dados no servidor dedicado
+      ansible.builtin.file:
+        path: /opt/projeto/etl
         state: directory
         owner: aluno
         group: aluno
-        recurse: yes
+        mode: '0755'
     
-    - name: Copiar gerador
-      copy:
-        src: ../../gerador/
-        dest: /home/aluno/projeto/
+    - name: Copiar arquivos de ETL
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../etl/{{ item }}"
+        dest: "/opt/projeto/etl/{{ item }}"
         owner: aluno
         group: aluno
         mode: 0755
+      loop:
+        - pipeline.py
+        - etl-script.R
+        - import-libraries.R
+    
+    - name: Importar bibliotecas R
+      ansible.builtin.command:
+        cmd: Rscript /opt/projeto/etl/import-libraries.R
 
-    - name: Criar diretorio para os dados
-      file:
-        path: /home/aluno/projeto/gerador/output
+    - name: Criar arquivo de configuracao /etc/rsyncd.conf
+      ansible.builtin.copy:
+        dest: /etc/rsyncd.conf
+        content: |
+          pid file = /var/run/rsyncd.pid
+          log file = /var/log/rsyncd.log
+
+          [recebe_csv]
+              path = /opt/projeto/csvs
+              comment = Staging CSVs
+              read only = no
+              list = yes
+              auth users = 
+              uid = aluno
+              gid = aluno
+
+    - name: Habilitar e iniciar servico rsync
+      ansible.builtin.systemd:
+        name: rsync
+        enabled: true
+        state: started
+
+    - name: Criar arquivo da unit do Systemd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/pipeline.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Servico Daemon de Orquestracao ETL
+          After=network.target rsync.service
+
+          [Service]
+          Type=simple
+          User=aluno
+          Group=aluno
+          WorkingDirectory=/opt/projeto/etl
+          ExecStart=/usr/bin/python3 /opt/projeto/etl/pipeline.py
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recarregar daemon do systemd e ativar o servico
+      ansible.builtin.systemd:
+        name: pipeline.service
+        daemon_reload: true
+        enabled: true
+        state: started
+
+
+
+- name: Configurar VM do Gerador
+  hosts: gerador
+  become: true
+  vars:
+    # criar globals.yml
+    pacotes:
+      - python3
+      - python3-pip
+      - python3-venv
+      - docker.io
+      - docker-compose-v2
+    dir_csvs: "/opt/projeto/csvs"
+    app_name: "gerador"
+    app_tag: "latest"
+    container_name: "gerador"
+    port_host: 4040
+    port_container: 4040
+
+  tasks:
+    - name: Instalar pacotes necessários
+      ansible.builtin.apt:
+        name: "{{ pacotes }}"
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Garantir docker ativo
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Adicionar usuário ao grupo docker
+      ansible.builtin.user:
+        name: aluno
+        groups: docker
+        append: true
+
+    - name: Copiar gerador
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../gerador/{{ item }}"
+        dest: "/opt/projeto/gerador/{{ item }}"
+        owner: aluno
+        group: aluno
+        mode: 0644
+      loop:
+        - gerador/
+        - .dockerignore
+        - Dockerfile
+        - requirements.txt
+
+    - name: Criar unit do Systemd para o uploader na VM 1
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/etl-uploader.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Servico Daemon de Envio de Dados ETL (VM 1 -> VM 2)
+          After=network.target docker.service
+
+          [Service]
+          Type=simple
+          User=aluno
+          Group=aluno
+          WorkingDirectory=/opt/projeto/gerador
+          ExecStart=/usr/bin/python3 /opt/projeto/gerador/gerador/uploader.py
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Habilitar e iniciar o servico etl-uploader na VM 1
+      ansible.builtin.systemd:
+        name: etl-uploader.service
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Checar código de saída e ID do contêiner atual (se existir)
+      ansible.builtin.command:
+        cmd: "docker inspect --format='{{ '{{' }}.State.ExitCode{{ '}}' }} {{ '{{' }}.Image{{ '}}' }}' {{ container_name }}"
+      register: current_container
+      failed_when: false
+      changed_when: false
+
+    - name: Buildar a imagem Docker
+      ansible.builtin.command:
+        cmd: "docker build -t {{ app_name }}:{{ app_tag }} ."
+        chdir: "/opt/projeto/gerador"
+      changed_when: false
+
+    - name: Obter ID da imagem gerada no build
+      ansible.builtin.command:
+        cmd: "docker inspect --format='{{ '{{' }}.Id{{ '}}' }}' {{ app_name }}:{{ app_tag }}"
+      register: built_image
+      changed_when: false
+
+    - name: Avaliar se o contêiner precisa ser recriado/executado
+      ansible.builtin.set_fact:
+        needs_restart: >-
+          {{
+            current_container.rc != 0 or
+            current_container.stdout.split()[0] != '0' or
+            (current_container.stdout.split() | length > 1 and current_container.stdout.split()[1] != built_image.stdout.strip())
+          }}
+
+    - name: Remover contêiner antigo se a imagem mudou ou ele não está rodando
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ container_name }}"
+      when: current_container.rc == 0 and needs_restart
+      changed_when: true
+
+    - name: Iniciar o contêiner
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name {{ container_name }}
+          -p {{ port_host }}:{{ port_container }}
+          --restart always
+          -v {{ dir_csvs }}:/gerador/gerador/output
+          {{ app_name }}:{{ app_tag }}
+      when: needs_restart
+      changed_when: true
+
+    - name: Garantir que o diretório de CSVs existe
+      ansible.builtin.file:
+        path: "{{ dir_csvs }}"
         state: directory
         owner: aluno
         group: aluno
-        mode: '0755'
-    
-    - name: Criar link para o diretorio de dados
-      file:
-        src: /home/aluno/projeto/gerador/output
-        dest: /home/aluno/projeto/dados
-        state: link
-        owner: aluno
-        group: aluno
-        mode: '0755'
+        mode: '0744'
+
