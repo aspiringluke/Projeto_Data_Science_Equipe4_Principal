@@ -1,0 +1,2497 @@
+---
+title: "AED — Projeto Telemetria de Jogos Digitais"
+output: 
+  pdf_document: default
+---
+
+# Projeto Integrado — Telemetria de Jogos Digitais
+
+## 👥 Integrantes do grupo 4:
+
+- Gabriel da Silva Freitas
+- José Carlos Pereira Neto
+- Lucas Paulino Gomes
+- Luís Miguel Vitor
+- Maria Luiza Tavares Procópio
+- Thierry Antonello Pengo
+
+------------------------------------------------------------------------
+
+## 🔍 Análise Exploratória de Dados
+
+Esse documento tem como principal objetivo relatar os passos tomados para ler, analisar, processar e visualizar o dataset gerado para o projeto integrado da equipe 4 sobre pipeline de dados de telemetria de jogos digitais em parceria com a **MIMA Games & Design LTDA**.
+
+------------------------------------------------------------------------
+
+## 📚 Sumário
+
+- [Etapa 1 - Importação do Dataset](#etapa-1---importação-do-dataset)
+- [Etapa 2 - Análise Inicial](#etapa-2---análise-inicial)
+- [Etapa 3 - Investigando Dados Sujos](#etapa-3---investigando-dados-sujos)
+- [Etapa 4 - Transformação dos dados sujos](#etapa-4---transformação-dos-dados-sujos)
+- [Etapa 5 - Validação](#etapa-5---validação)
+- [Etapa 6 - Geração dos gráficos](#etapa-6---geração-dos-gráficos)
+- [Considerações Finais](#considerações-finais)
+
+------------------------------------------------------------------------
+
+## Etapa 1 - Importação do Dataset {#etapa-1---importação-do-dataset}
+
+À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
+
+Será instalado e carregado o pacote `dplyr` que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+
+Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
+
+A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem a visualização e interpretação dos dados por meio de diferentes tipos de gráficos, como gráficos de barras, linhas, dispersão e histogramas, etc.
+
+```{r Etapa 1 - Importação do Dataset}
+ install.packages("dplyr")
+ install.packages("lubridate")
+ install.packages("stringr")
+ install.packages("stringi")
+ install.packages("ggplot2")
+ install.packages("here")
+
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(stringi)
+library(ggplot2)
+library(here)
+
+# 1. Definir base
+
+base_repo = here()
+
+# 2. Verificar pasta
+pasta_dados = file.path(base_repo, "gerador", "gerador", "output", "sujos")
+
+if (!dir.exists(pasta_dados)){
+  stop("A pasta não existe: ", pasta_dados)
+}
+
+# 3. Função para achar o CSV mais recente
+encontrar_csv = function(pasta, padrao){
+  arquivos = list.files(pasta, pattern = padrao, full.names = TRUE)
+  
+  if (length(arquivos) == 0){
+    stop("Nenhum arquivo encontrado com o padrão '", padrao, "' em: ", pasta)
+  }
+
+  # Ordena pelo nome (o timestamp está no nome, então ordem alfabética = cronológica)
+  sort(arquivos, decreasing = TRUE)[1]
+}
+
+# 4. Padrões e importação
+padroes = c(
+  compras       = "^[0-9]*-compras_[0-9]{8}_.*\\.csv$",
+  itens         = "^[0-9]*-itens_[0-9]{8}_.*\\.csv$",
+  itens_compras = "^[0-9]*-itens_compra_[0-9]{8}_.*\\.csv$",
+  jogadores     = "^[0-9]*-jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
+  partidas      = "^[0-9]*-partidas_[0-9]{8}_.*\\.csv$",
+  sessoes       = "^[0-9]*-sessoes_[0-9]{8}_.*\\.csv$"
+)
+
+for (nome in names(padroes)){
+  caminho = encontrar_csv(pasta_dados, padroes[[nome]])
+  
+  if (!file.exists(caminho)){
+    stop("Arquivo não encontrado: ", caminho)
+  }
+  
+  assign(nome, read.csv(caminho))
+  message("Importado: ", basename(caminho), " -> ", nome)
+}
+```
+
+------------------------------------------------------------------------
+
+## Etapa 2 - Análise Inicial {#etapa-2---análise-inicial}
+
+À princípio, a função `head()` permite observar as seis primeiras linhas de cada DataFrame, possibilitando uma compreensão inicial dos dados e das variáveis presentes em cada conjunto.
+
+Em seguida, a função `names()` é utilizada para identificar os nomes das colunas de cada DataFrame, facilitando o reconhecimento das variáveis disponíveis e auxiliando na compreensão da organização dos dados.
+
+Posteriormente, a função `str()` permite examinar a estrutura de cada conjunto de dados, apresentando a quantidade de observações, as variáveis existentes e seus respectivos tipos, como numéricos, caracteres ou inteiros.
+
+Por fim, a função `summary()` fornece um resumo estatístico das variáveis, incluindo medidas como mínimo, máximo, mediana, média e quartis para variáveis numéricas, além de informações sobre a frequência de valores para variáveis categóricas. Dessa forma, essas funções contribuem para uma exploração inicial dos datasets, permitindo identificar características relevantes, compreender a estrutura dos dados e obter uma visão geral que servirá de base para as próximas etapas da análise.
+
+```{r Etapa 2 - Análise Inicial : head()}
+# head
+head(compras)
+head(itens)
+head(itens_compras)
+head(jogadores)
+head(partidas)
+head(sessoes)
+```
+
+```{r Etapa 2 - Análise Inicial : names()}
+# names
+cat('Compras:\n')
+names(compras)
+cat('\n')
+
+cat('Itens:\n')
+names(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+names(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+names(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+names(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+names(sessoes)
+```
+
+```{r Etapa 2 - Análise Inicial : str()}
+# structure
+cat('Compras:\n')
+str(compras)
+cat('\n')
+
+cat('Itens:\n')
+str(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+str(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+str(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+str(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+str(sessoes)
+```
+
+```{r Etapa 2 - Análise Inicial : summary()}
+# Summary
+cat('Compras:\n')
+summary(compras)
+cat('\n')
+
+cat('Itens:\n')
+summary(itens)
+cat('\n')
+
+cat('Itens_Compras:\n')
+summary(itens_compras)
+cat('\n')
+
+cat('Jogadores:\n')
+summary(jogadores)
+cat('\n')
+
+cat('Partidas:\n')
+summary(partidas)
+cat('\n')
+
+cat('Sessões:\n')
+summary(sessoes)
+```
+
+------------------------------------------------------------------------
+
+## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
+
+Serão contabilizados a quantidade de observações vazias em cada dataset
+
+Será contabilizado também a média de observações vazias
+
+```{r Etapa 3 - Investigando Dados Sujos : sum()}
+cat("Valores ausentes — Compras:\n")
+sum(compras == "")
+cat('\n')
+
+cat("Valores ausentes — Itens:\n")
+sum(itens == "")
+cat('\n')
+
+cat("Valores ausentes — Itens_Compras:\n")
+sum(itens_compras == "")
+cat('\n')
+
+cat("Valores ausentes — Jogadores:\n")
+sum(jogadores == "")
+cat('\n')
+
+cat("Valores ausentes — Partidas:\n")
+sum(partidas == "")
+cat('\n')
+
+cat("Valores ausentes — Sessões:\n")
+sum(sessoes == "")
+cat('\n')
+
+cat("Média geral de Valores ausentes:\n")
+soma_vazios = c(
+  sum(compras == "", na.rm = TRUE),
+  sum(itens == "", na.rm = TRUE),
+  sum(itens_compras == "", na.rm = TRUE),
+  sum(jogadores == "", na.rm = TRUE),
+  sum(partidas == "", na.rm = TRUE),
+  sum(sessoes == "", na.rm = TRUE)
+)
+media_vazios = mean(soma_vazios)
+media_vazios
+```
+
+É possível observar as seguintes situações:
+
+- O dataset com o maior número de valores ausentes é aquele que concentra a maior quantidade de campos vazios, o que indica onde a limpeza será mais trabalhosa
+- O dataset com o menor número de valores ausentes é aquele que concentra a menor quantidade de campos vazios, podendo inclusive não ter nenhum, caso todos os campos tenham algum valor registrado
+- A média geral de valores ausentes serve como ponto de referência: datasets acima dela têm mais vazios do que o típico, e datasets abaixo têm menos, o que ajuda a priorizar quais merecem mais atenção na limpeza
+
+Serão contabilizados a quantidade de observações NA em cada dataset
+
+```{r Etapa 3 - Investigando Dados Sujos : contabilização de NA}
+cat("Valores NA — Compras:\n")
+sum(is.na(compras))
+cat('\n')
+
+cat("Valores NA — Itens:\n")
+sum(is.na(itens))
+cat('\n')
+
+cat("Valores NA — Itens_Compras:\n")
+sum(is.na(itens_compras))
+cat('\n')
+
+cat("Valores NA — Jogadores:\n")
+sum(is.na(jogadores))
+cat('\n')
+
+cat("Valores NA — Partidas:\n")
+sum(is.na(partidas))
+cat('\n')
+
+cat("Valores NA — Sessões:\n")
+sum(is.na(sessoes))
+```
+
+Este trecho faz parte de uma etapa de auditoria de qualidade dos dados. Ele procura valores de desconto que não fazem sentido na tabela `itens_compras` e os sinaliza, sem alterar nada. A regra de negócio é que o desconto está representado como uma proporção entre 0 e 1, em que 0 significa sem desconto e 1 significa 100% de desconto. Qualquer valor fora desse intervalo é inválido: um desconto negativo equivaleria a um acréscimo no preço, e um desconto acima de 1 significaria pagar menos do que zero.
+
+Para isso, o código segue três passos. Primeiro, o `filter` lista as linhas com desconto menor que 0 ou maior que 1, apenas para que você visualize os problemas, já que o resultado não é salvo. Depois, o `mutate` cria a coluna `desconto_invalido`, que recebe `TRUE` quando o desconto está fora do intervalo e `FALSE` caso contrário, mantendo intactos os valores originais de `desconto`. Por fim, o `View` permite conferir se a coluna foi criada corretamente, e o `sum` conta quantos registros são inválidos, já que o R trata `TRUE` como 1 e `FALSE` como 0.
+
+Antes de limpar ou transformar os dados, é preciso dimensionar o problema: quantas observações estão sujas, onde estão e se o volume sugere um erro isolado de digitação ou uma falha sistemática na origem. Este código responde a essas perguntas de forma rápida e rastreável.
+
+## Observação importante
+
+Corrigir o valor na hora pode parecer mais prático, mas marcar é mais seguro por vários motivos. Em primeiro lugar, não sabemos qual é o valor correto: um desconto de, por exemplo, `15` pode ser `0.15` (erro de escala), `1.5` (erro de digitação) ou simplesmente lixo, e substituí-lo por um palpite insere informação falsa no dataset, o que é pior do que o dado sujo, pois o erro passa a parecer legítimo.
+
+Além disso, sobrescrever o valor destrói a informação original e impede investigar a causa ou corrigir o problema na fonte. A flag preserva o dado e mantém a rastreabilidade e a reprodutibilidade da análise, pois quem a ler depois consegue ver exatamente quais linhas foram consideradas problemáticas e por quê.
+
+Marcar também adia a decisão de tratamento. Com as linhas sinalizadas, você pode escolher depois entre excluir, converter para `NA`, imputar ou corrigir por regra de negócio, comparando o impacto de cada estratégia sem refazer a detecção. E como alterações sem registro podem distorcer médias e totais sem que ninguém perceba, a flag evita esse viés silencioso, além de permitir filtrar facilmente os dados válidos ou os problemáticos.
+
+```{r Etapa 3 - Investigando Dados Sujos : Descontos Inválidos}
+
+# Filtrando o DataFrame de 'itens_compras' pela variável 'Desconto' para procurar descontos inválidos
+# Descontos inválidos são aqueles que o valor é menor que 0.0 ou maior que 1.0
+itens_compras |> filter(desconto < 0 | desconto > 1)
+
+# Criando novas colunas que marcam descontos inválidos por meio de booleanos
+itens_compras = itens_compras |> mutate(
+  desconto_invalido = desconto < 0 | desconto > 1
+)
+
+# Visualizando o DataFrame de itens_compras (confirmar a criação bem-sucedida da nova variável)
+View(itens_compras)
+
+# Contabilizando o número de observações com descontos inválidos
+cat("Quantidade de descontos inválidos:\n")
+sum(itens_compras$desconto_invalido, na.rm = TRUE)
+```
+
+------------------------------------------------------------------------
+
+## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
+
+### 1. Padronização de valores ausentes
+
+Nesta etapa, foi criada a função `limpa_nulos()`, responsável por padronizar as diferentes representações de valores ausentes encontradas nos datasets. Os valores representados por strings vazias (""), "NA" e "NULL" são substituídos pelo valor especial NA do R, que indica a ausência de um dado.
+
+A função utiliza `lapply()` para percorrer as colunas do dataset e aplicar a substituição em cada uma delas, enquanto **df[]** permite atualizar as colunas sem alterar a estrutura original do data frame.
+
+Essa padronização facilita as etapas seguintes de limpeza e análise, pois permite tratar os valores ausentes de maneira consistente. Por isso, a função é executada antes das demais transformações em todos os datasets utilizados.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Padronização de Valores Ausentes}
+limpa_nulos = function(df) {
+  df[] = lapply(df, function(x) {
+    x[x == "" | x == "NA" | x == "NULL"] = NA
+    return(x)
+  })
+  return(df)
+}
+
+compras_nulos       = limpa_nulos(compras)
+itens_nulos         = limpa_nulos(itens)
+itens_compras_nulos = limpa_nulos(itens_compras)
+jogadores_nulos     = limpa_nulos(jogadores)
+partidas_nulos      = limpa_nulos(partidas)
+sessoes_nulos       = limpa_nulos(sessoes)
+
+
+```
+
+### 2. Remoção de registros duplicados & Contabilização dos registros duplicados removido
+
+Após a padronização dos valores ausentes, foi utilizada a função `distinct()`, do pacote **dplyr**, para remover registros duplicados de cada dataset.
+
+Por padrão, `distinct()` considera todas as colunas para identificar registros repetidos, mantendo apenas uma ocorrência de cada combinação de valores. Dessa forma, os datasets passam a conter apenas registros distintos, reduzindo redundâncias que poderiam interferir nas análises posteriores.
+
+Os resultados são armazenados em novos objetos com o sufixo \*\_limpos\*, preservando os datasets originais e as versões intermediárias geradas na etapa anterior.
+
+------------------------------------------------------------------------
+
+Para avaliar o impacto da limpeza, foi calculada a quantidade de registros removidos de cada dataset. Para isso, a função `nrow()` obtém o número de linhas de cada dataset, e a diferença entre a quantidade original de linhas e a quantidade de linhas após a remoção das duplicatas indica quantos registros foram eliminados.
+
+A função `cat()` exibe uma mensagem identificando o resultado, enquanto `print()` apresenta as quantidades calculadas em um vetor nomeado, facilitando a comparação entre os datasets.
+
+Essa verificação permite avaliar o volume de duplicidades encontrado em cada conjunto de dados e documentar os resultados da transformação realizada.
+
+```{r Etapa 4 - Transformação dos Dados Sujos: Remoção de Registros Duplicados & Contabilização dos registros duplicados removido}
+compras_limpas       = compras_nulos       %>% distinct()
+itens_limpos         = itens_nulos         %>% distinct()
+itens_compras_limpos = itens_compras_nulos %>% distinct()
+jogadores_limpos     = jogadores_nulos     %>% distinct()
+partidas_limpas      = partidas_nulos      %>% distinct()
+sessoes_limpas       = sessoes_nulos       %>% distinct()
+
+cat("Quantidade de duplicadas removidas:\n")
+print(c(compras       = nrow(compras)       - nrow(compras_limpas),
+        itens         = nrow(itens)         - nrow(itens_limpos),
+        itens_compras = nrow(itens_compras) - nrow(itens_compras_limpos),
+        jogadores     = nrow(jogadores)     - nrow(jogadores_limpos),
+        partidas      = nrow(partidas)      - nrow(partidas_limpas),
+        sessoes       = nrow(sessoes)       - nrow(sessoes_limpas)))
+```
+
+### 3. Padronização das datas e conversão para tipos apropriados
+
+Nesta etapa, foram criadas funções auxiliares para interpretar datas registradas em diferentes formatos e convertê-las para tipos reconhecidos pelo R. Essa transformação é importante porque os dados originais podem apresentar formatos distintos, como **AAAA-MM-DD**, **DD/MM/AAAA** e **MM/DD/AAAA**, dificultando a realização de cálculos e comparações temporais.
+
+A função `candidatas()` identifica possíveis interpretações para cada data, considerando os formatos ISO, **dia/mês/ano (dmy)** e **mês/dia/ano (mdy)**. Para isso, utiliza expressões regulares para identificar os padrões e a função `parse_date_time()`, do pacote lubridate, para interpretar os valores encontrados. Quando necessário, a função também considera a presença de horários e define o fuso horário utilizado na conversão.
+
+Para datas sem horário, os valores são convertidos para o tipo Date. Para datas com horário, são mantidos como objetos de data e hora, permitindo cálculos de duração e comparação entre instantes.
+
+A função `resolve_data()` é responsável por escolher a interpretação mais adequada entre as candidatas. Quando uma data pode representar dias e meses em ordens diferentes, a função verifica se as interpretações são ambíguas e, quando existem referências de início e fim, utiliza a diferença temporal entre elas para auxiliar na escolha do formato mais plausível. Caso não seja possível determinar a interpretação com base nessas referências, a função assume o formato dia/mês/ano e contabiliza os casos para informar possíveis limitações da conversão.
+
+Por fim, a função `dif_min()` calcula a diferença absoluta entre duas datas em minutos. Esse cálculo é utilizado como critério auxiliar para comparar as possíveis interpretações das datas de início e término de partidas e sessões.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Padronização das datas e conversão para tipos apropriados}
+candidatas = function(x, hora = FALSE, tz = "UTC") {
+  x = str_squish(x)
+  f = if (hora) " HMS" else ""
+  ler = function(padrao, ordem) {
+    v = ifelse(grepl(padrao, x), x, NA)
+    out = suppressWarnings(parse_date_time(v, paste0(ordem, f), tz = tz, quiet = TRUE))
+    if (hora) out else as.Date(out)
+  }
+  list(iso = ler("^[0-9]{4}-[0-9]{2}-[0-9]{2}", "Ymd"),
+       dmy = ler("^[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}", "dmY"),
+       mdy = ler("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}", "mdY"))
+}
+
+resolve_data = function(cand, erro_dmy = NULL, erro_mdy = NULL) {
+  n = length(cand$iso)
+  if (is.null(erro_dmy)) erro_dmy = rep(NA_real_, n)
+  if (is.null(erro_mdy)) erro_mdy = rep(NA_real_, n)
+
+  ambigua = is.na(cand$iso) & !is.na(cand$dmy) & !is.na(cand$mdy) & cand$dmy != cand$mdy
+  sem_ref = ambigua & (is.na(erro_dmy) | is.na(erro_mdy))
+  cat("Datas ambíguas (dd/mm x mm/dd):", sum(ambigua, na.rm = TRUE),
+      "| sem referência (assumido dd/mm):", sum(sem_ref, na.rm = TRUE), "\n")
+
+  mdy_melhor = (erro_mdy < erro_dmy) %in% TRUE
+  usa_mdy = !is.na(cand$mdy) & (is.na(cand$dmy) | mdy_melhor)
+  coalesce(cand$iso, if_else(usa_mdy, cand$mdy, cand$dmy))
+}
+
+dif_min  = function(a, b) abs(as.numeric(difftime(a, b, units = "mins")))
+```
+
+### 4. Aplicação da padronização das datas nos datasets
+
+Após a definição das funções auxiliares, elas são aplicadas às colunas de data dos datasets de compras, jogadores, partidas e sessões.
+
+No dataset de compras, a coluna data_compra é interpretada considerando a possibilidade de conter horário. No dataset de jogadores, as colunas data_nascimento e data_criacao_conta são convertidas para o tipo Date, pois representam datas sem necessidade de considerar o horário.
+
+Já nos datasets de partidas e sessões, as datas de início e término são interpretadas separadamente. Em seguida, as diferenças entre as possíveis interpretações dos pares de datas são calculadas para auxiliar na identificação do formato mais coerente. As colunas são então atualizadas com os valores convertidos.
+
+A utilização de `mutate()` permite substituir as colunas originais pelos valores padronizados, mantendo as demais informações dos datasets. Dessa maneira, os campos temporais passam a utilizar tipos apropriados para análises cronológicas, cálculos de duração e verificações de consistência.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização das datas nos datasets}
+# --- COMPRAS ---
+cand_compra = candidatas(compras_limpas$data_compra, hora = TRUE)
+compras_limpas = compras_limpas %>%
+  mutate(data_compra = resolve_data(cand_compra))
+
+# --- JOGADORES ---
+cand_nasc = candidatas(jogadores_limpos$data_nascimento, hora = FALSE)
+cand_criacao = candidatas(jogadores_limpos$data_criacao_conta, hora = FALSE)
+
+jogadores_limpos = jogadores_limpos %>%
+  mutate(data_nascimento = resolve_data(cand_nasc),
+         data_criacao_conta = resolve_data(cand_criacao))
+
+# --- PARTIDAS ---
+cand_ini_partida = candidatas(partidas_limpas$data_inicio_partida, hora = TRUE)
+cand_fim_partida = candidatas(partidas_limpas$data_fim_partida, hora = TRUE)
+
+erro_dmy_partida = dif_min(cand_ini_partida$dmy, cand_fim_partida$dmy)
+erro_mdy_partida = dif_min(cand_ini_partida$mdy, cand_fim_partida$mdy)
+
+partidas_limpas = partidas_limpas %>%
+  mutate(data_inicio_partida = resolve_data(cand_ini_partida, erro_dmy_partida, erro_mdy_partida),
+         data_fim_partida    = resolve_data(cand_fim_partida, erro_dmy_partida, erro_mdy_partida))
+
+# --- SESSOES ---
+cand_ini_sessao = candidatas(sessoes_limpas$data_inicio_sessao, hora = TRUE)
+cand_fim_sessao = candidatas(sessoes_limpas$data_fim_sessao, hora = TRUE)
+
+erro_dmy_sessao = dif_min(cand_ini_sessao$dmy, cand_fim_sessao$dmy)
+erro_mdy_sessao = dif_min(cand_ini_sessao$mdy, cand_fim_sessao$mdy)
+
+sessoes_limpas = sessoes_limpas %>%
+  mutate(data_inicio_sessao = resolve_data(cand_ini_sessao, erro_dmy_sessao, erro_mdy_sessao),
+         data_fim_sessao    = resolve_data(cand_fim_sessao, erro_dmy_sessao, erro_mdy_sessao))
+```
+
+### 5. Criação de funções para padronização de textos e números
+
+Nesta etapa, foram desenvolvidas funções auxiliares para uniformizar valores textuais e converter representações numéricas armazenadas como texto.
+
+A função `chave_texto()` prepara os textos para comparação, convertendo os valores para caracteres, removendo espaços excedentes, eliminando diferenças de acentuação e transformando todas as letras em minúsculas. Isso permite reconhecer como equivalentes valores que diferem apenas na capitalização, na acentuação ou na quantidade de espaços.
+
+A função `padronizar_categoria()` utiliza essa chave normalizada para comparar os valores encontrados com uma lista de categorias válidas. Quando encontra uma correspondência, substitui o valor original pela grafia padronizada definida na lista. Quando não encontra correspondência, mantém o texto original após remover os espaços excedentes e exibe um aviso com os valores que não pertencem à lista de categorias válidas. Essa abordagem permite uniformizar as categorias sem descartar silenciosamente valores inesperados.
+
+Por fim, a função `converter_numero()` converte valores textuais em números. Antes da conversão, os valores são transformados em caracteres, têm seus espaços excedentes removidos e as vírgulas decimais são substituídas por pontos. Em seguida, **as.numeric()** realiza a conversão para o tipo numérico, permitindo que esses valores sejam utilizados em cálculos matemáticos e análises estatísticas.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Criação de funções para padronização de textos e números}
+chave_texto = function(x) {
+  x %>% as.character() %>% str_squish() %>% stri_trans_general("Latin-ASCII") %>% str_to_lower()
+}
+
+padronizar_categoria = function(x, validos, nome = "coluna") {
+  idx = match(chave_texto(x), chave_texto(validos))
+  out = ifelse(is.na(idx), str_squish(as.character(x)), validos[idx])
+  fora_da_lista = unique(out[is.na(idx) & !is.na(x)])
+  if (length(fora_da_lista) > 0) {
+    cat("Atenção -", nome, "- valores fora da lista:", paste(fora_da_lista, collapse = ", "), "\n")
+  }
+  out
+}
+
+converter_numero = function(x) {
+  as.numeric(str_replace(str_squish(as.character(x)), ",", "."))
+}
+```
+
+### 6. Aplicação da padronização de textos e categorias
+
+Após a definição das funções auxiliares, são estabelecidas listas de categorias válidas para os gêneros de jogos e as plataformas utilizadas nas sessões.
+
+A lista **generos_jogo_validos** define os gêneros aceitos, como FPS, RPG, Ação, Aventura e Estratégia. Já a lista plataformas_validas estabelece as categorias reconhecidas para as plataformas, incluindo PC, PlayStation, Xbox e Mobile.
+
+Essas listas funcionam como referências para a padronização dos dados. Em seguida, a função `padronizar_categoria()` é aplicada às colunas plataforma e genero_jogo do dataset sessoes_limpas, por meio de `mutate()`
+
+Com isso, valores equivalentes passam a utilizar uma representação uniforme, reduzindo inconsistências causadas por diferenças de escrita. Os valores que não correspondem às categorias predefinidas são preservados e sinalizados para análise posterior, evitando a exclusão automática de informações potencialmente relevantes.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias I}
+generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
+                          "Esportes", "MOBA", "Simulação", "Luta", "Survival")
+plataformas_validas  = c("PC", "PlayStation", "Xbox", "Mobile")
+
+sessoes_limpas = sessoes_limpas %>%
+  mutate(
+    plataforma  = padronizar_categoria(plataforma, plataformas_validas, "sessoes$plataforma"),
+    genero_jogo = padronizar_categoria(genero_jogo, generos_jogo_validos, "sessoes$genero_jogo")
+  )
+```
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias II}
+resultados_validos = c("Vitória", "Derrota", "Empate")
+
+partidas_limpas = partidas_limpas %>%
+  mutate(resultado = padronizar_categoria(resultado, resultados_validos, "partidas$resultado"))
+```
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias III}
+categorias_validas = c("Skin", "Passe de batalha", "Moeda virtual", "Personagem", "Cosmético",
+                        "DLC", "Boost", "Pacote", "Emote", "Acessório")
+raridades_validas  = c("Comum", "Incomum", "Rara", "Épica", "Lendária")
+
+nomes_validos = c(
+  "Skin Dragão", "Skin Tempestade", "Skin Neon", "Skin Sombria", "Skin Vulcânica", "Skin Glacial",
+  "Passe de Batalha Bronze", "Passe de Batalha Prata", "Passe de Batalha Ouro",
+  "100 Moedas", "500 Moedas", "1000 Moedas", "2500 Moedas",
+  "Personagem Guerreiro", "Personagem Mago", "Personagem Caçador", "Personagem Assassino",
+  "Roupa Especial", "Capacete Especial", "Efeito Visual", "Pintura Especial",
+  "Expansão Norte", "Expansão Sombria", "Expansão Final",
+  "Boost de XP", "Boost de Moedas", "Boost de Progressão",
+  "Pacote Inicial", "Pacote Premium", "Pacote Lendário",
+  "Emote Dança", "Emote Vitória", "Emote Provocação",
+  "Mochila Especial", "Pingente", "Bandeira", "Insígnia"
+)
+
+itens_limpos = itens_limpos %>%
+  mutate(
+    nome_item      = padronizar_categoria(nome_item, nomes_validos, "itens$nome_item"),
+    categoria_item = padronizar_categoria(categoria_item, categorias_validas, "itens$categoria_item"),
+    raridade       = padronizar_categoria(raridade, raridades_validas, "itens$raridade"),
+    preco_base     = converter_numero(preco_base),
+    
+    # Preenche raridade ausente apenas quando o preço é inequívoco
+    raridade = coalesce(raridade, case_when(
+      near(preco_base, 4.90)  ~ "Comum",
+      near(preco_base, 14.90) ~ "Incomum",
+      near(preco_base, 24.90) ~ "Rara",
+      near(preco_base, 39.90) ~ "Épica",
+      near(preco_base, 59.90) ~ "Lendária",
+      near(preco_base, 79.90) ~ "Lendária",
+      TRUE ~ NA_character_
+    ))
+  )
+```
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias IV}
+itens_compras_limpos = itens_compras_limpos %>%
+  mutate(across(c(valor_unitario, desconto, valor_total_item), converter_numero))
+```
+
+`genero` e `pais` são padronizados com as listas válidas do gerador.
+
+Em relação a `cidade`, quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
+
+```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias V}
+# --- Vetores de Validação e Padronização ---
+
+# Lista de países permitidos para validação posterior
+paises_validos = c("Brasil", "Estados Unidos", "Portugal", "Espanha", "França", "Alemanha", "Itália", "Reino Unido", "Canadá", "Austrália", "México", "Argentina")
+
+# Lista de gêneros aceitos no conjunto de dados
+generos_validos = c("Masculino", "Feminino")
+
+# Conjunções e artigos comuns em nomes de cidades que não devem ter a primeira letra maiúscula
+particulas_cidade = c("de", "da", "do", "das", "dos", "del", "della", "di", "du", "la", "le", "les", "los", "las", "of", "the", "von", "van", "der", "den")
+
+
+# --- Funções Auxiliares ---
+
+# Função para formatar o nome das cidades no estilo "Título" (Ex: "rio de janeiro" -> "Rio de Janeiro")
+titulo_cidade = function(x) {
+  # Cria uma expressão regular para encontrar as partículas isoladas por espaços ou hifens
+  padrao = paste0("(?<=[ -])(", paste(particulas_cidade, collapse = "|"), ")(?=[ -])")
+  
+  x %>% 
+    str_to_lower() %>%                            # Converte todo o texto para minúsculo
+    str_to_title() %>%                            # Transforma a primeira letra de cada palavra em maiúscula
+    str_replace_all(regex(padrao, ignore_case = TRUE), str_to_lower) # Devolve as partículas para minúsculo
+}
+
+
+# --- Criação de Dicionário de Referência ---
+
+# Mapeia cidades que já possuem uma grafia correta/mista na base (evita aplicar a função de título do zero)
+ref_cidades = jogadores_limpos %>% 
+  filter(!is.na(cidade)) %>%                      # Remove valores nulos
+  mutate(cidade = str_squish(cidade)) %>%         # Remove espaços extras no início, fim e duplicados
+  filter(cidade != str_to_upper(cidade),          # Filtra para manter apenas cidades que NÃO estão todas em maiúsculo...
+         cidade != str_to_lower(cidade)) %>%      # ...e NÃO estão todas em minúsculo (mantém a grafia original correta)
+  mutate(chave = str_to_lower(cidade)) %>%        # Cria uma chave em minúsculo para busca posterior
+  count(chave, cidade) %>%                        # Conta a frequência de cada grafia
+  arrange(chave, desc(n)) %>%                     # Ordena pela chave e pelas grafias mais frequentes
+  distinct(chave, .keep_all = TRUE)               # Mantém apenas a grafia mais comum para cada cidade
+
+
+# --- Limpeza e Padronização da Base de Dados ---
+
+jogadores_limpos = jogadores_limpos %>% 
+  mutate(
+    cidade = str_squish(cidade),                  # Remove espaços em branco redundantes
+    chave_cidade = str_to_lower(cidade),          # Cria chave temporária para cruzamento
+    
+    # Atualiza o nome da cidade: tenta usar a grafia de referência (ref_cidades); 
+    # se não encontrar, aplica a função titulo_cidade
+    cidade = coalesce(ref_cidades$cidade[match(chave_cidade, ref_cidades$chave)], titulo_cidade(cidade)),
+    
+    # Padroniza a coluna de gênero usando a função externa 'padronizar_categoria'
+    genero = padronizar_categoria(genero, generos_validos, "jogadores$genero"),
+    
+    # Padroniza a coluna de país usando a função externa 'padronizar_categoria'
+    pais = padronizar_categoria(pais, paises_validos, "jogadores$pais")
+  ) %>% 
+  select(-chave_cidade)                           # Remove a coluna de chave temporária
+
+```
+
+### Etapa 4 - Correção: Funções base
+
+`datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`, `dmy` e `mdy`), mas converte só as linhas que casam com cada formato e usa `fast_strptime()` com formato fixo.
+
+```{r Funções base}
+
+# Função que tenta interpretar uma data em três formatos diferentes:
+# ISO: 2024-05-03
+# DMY: 03/05/2024 (dia/mês/ano)
+# MDY: 05/03/2024 (mês/dia/ano)
+#
+# O objetivo é gerar as possíveis interpretações para que outras
+# funções possam escolher a data correta usando informações de referência.
+
+datas_corrigidas = function(x, hora = FALSE, tz = "UTC") {
+
+  # Remove espaços desnecessários do início, do fim e entre palavras.
+  x = str_squish(x)
+
+  # Guarda a quantidade de datas recebidas.
+  n = length(x)
+
+  # Se houver horário, adiciona horas, minutos e segundos ao formato.
+  # Caso contrário, interpreta somente a data.
+  sufixo = if (hora) " %H:%M:%S" else ""
+
+  # Função interna responsável por interpretar um formato de data.
+  # padrao: expressão regular que identifica o formato do texto.
+  # formato: formato de data esperado pelo R.
+  # trocar_hifen: permite trocar hífens por barras antes da conversão.
+  ler = function(padrao, formato, trocar_hifen = FALSE) {
+
+    # Identifica as posições que correspondem ao formato informado.
+    idx = which(grepl(padrao, x))
+
+    # Cria um vetor numérico preenchido com valores ausentes (NA).
+    # As posições válidas serão preenchidas com as datas convertidas.
+    segundos = rep(NA_real_, n)
+
+    # Só tenta converter se encontrar alguma data correspondente.
+    if (length(idx) > 0) {
+
+      # Seleciona somente os textos que correspondem ao formato.
+      txt = x[idx]
+
+      # Padroniza o separador quando necessário.
+      # Exemplo: 03-05-2024 passa a ser 03/05/2024.
+      if (trocar_hifen) txt = chartr("-", "/", txt)
+
+      # Converte os textos em datas e transforma os resultados
+      # em segundos desde 01/01/1970.
+      segundos[idx] = as.numeric(
+        fast_strptime(
+          txt,
+          paste0(formato, sufixo),
+          tz = tz,
+          lt = FALSE
+        )
+      )
+    }
+
+    # Reconstrói as datas a partir dos segundos calculados.
+    out = as.POSIXct(
+      segundos,
+      origin = "1970-01-01",
+      tz = tz
+    )
+
+    # Retorna data e horário ou somente a data, conforme o parâmetro.
+    if (hora) out else as.Date(out)
+  }
+
+  # Retorna uma lista com as três possíveis interpretações.
+  # A função não escolhe a interpretação correta neste momento.
+  list(
+    # Formato ISO: ano-mês-dia.
+    iso = ler(
+      "^[0-9]{4}-[0-9]{2}-[0-9]{2}",
+      "%Y-%m-%d"
+    ),
+
+    # Formato brasileiro: dia/mês/ano.
+    # Também aceita datas com hífens.
+    dmy = ler(
+      "^[0-9]{2}[/-][0-9]{2}[/-][0-9]{4}",
+      "%d/%m/%Y",
+      trocar_hifen = TRUE
+    ),
+
+    # Formato americano: mês/dia/ano.
+    mdy = ler(
+      "^[0-9]{2}/[0-9]{2}/[0-9]{4}",
+      "%m/%d/%Y"
+    )
+  )
+}
+
+
+# Verifica se as colunas informadas ainda contêm textos.
+# Isso evita executar novamente a conversão sobre colunas que
+# já foram transformadas em datas.
+exigir_texto = function(df, colunas) {
+
+  # Percorre cada nome de coluna recebido.
+  for (col in colunas) {
+
+    # Se a coluna não for do tipo character, interrompe a execução.
+    if (!is.character(df[[col]])) {
+
+      # Exibe uma mensagem explicando o problema encontrado.
+      stop(
+        "A coluna '", col,
+        "' já foi convertida. Rode esta etapa a partir do objeto com as datas em texto.",
+        call. = FALSE
+      )
+    }
+  }
+}
+
+
+# Converte segundos desde 01/01/1970 para data e horário.
+# O fuso horário utilizado por padrão é UTC.
+segundos_para_posix = function(s, tz = "UTC") {
+  as.POSIXct(s, origin = "1970-01-01", tz = tz)
+}
+
+
+# Identifica datas ambíguas.
+# Uma data é ambígua quando as interpretações brasileira e americana
+# são válidas, mas representam dias diferentes.
+#
+# Exemplo: 03/05/2024 pode significar 3 de maio ou 5 de março.
+eh_ambigua = function(cand) {
+
+  # Verifica se não existe interpretação ISO, mas existem
+  # interpretações DMY e MDY diferentes entre si.
+  is.na(cand$iso) &
+    !is.na(cand$dmy) &
+    !is.na(cand$mdy) &
+    cand$dmy != cand$mdy
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Etapa 4 - Correções: Sessões e Partidas: referência = `duracao_minutos`
+
+Como só uma das duas datas da linha é suja, a outra fica em ISO. A função testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início × as três do fim) e escolhe a que bate com `duracao_minutos`.
+
+```{r Sessões e Partidas}
+
+# Tenta encontrar a combinação de datas de início e fim
+# cuja diferença corresponda à duração informada em minutos.
+resolve_por_duracao = function(ini_txt, fim_txt, duracao, tz = "UTC") {
+
+  # Gera as possíveis interpretações das datas de início e fim.
+  ci = datas_corrigidas(ini_txt, hora = TRUE, tz = tz)
+  cf = datas_corrigidas(fim_txt, hora = TRUE, tz = tz)
+
+  # Organiza as datas em matrizes numéricas.
+  # Coluna 1: ISO; coluna 2: DMY; coluna 3: MDY.
+  ini_num = cbind(
+    as.numeric(ci$iso),
+    as.numeric(ci$dmy),
+    as.numeric(ci$mdy)
+  )
+
+  fim_num = cbind(
+    as.numeric(cf$iso),
+    as.numeric(cf$dmy),
+    as.numeric(cf$mdy)
+  )
+
+  # Cria as nove combinações possíveis:
+  # 3 formatos para o início multiplicados por 3 para o fim.
+  combos = expand.grid(i = 1:3, f = 1:3)
+
+  # Calcula o erro de cada combinação em relação à duração informada.
+  # Quanto menor o erro, mais compatível é a combinação.
+  erros = matrix(
+    vapply(seq_len(nrow(combos)), function(k) {
+
+      # Calcula a diferença entre fim e início em minutos
+      # e compara o resultado com a duração esperada.
+      abs(
+        (fim_num[, combos$f[k]] - ini_num[, combos$i[k]]) / 60 -
+          duracao
+      )
+
+    }, numeric(length(duracao))),
+    nrow = length(duracao)
+  )
+
+  # Combinações com valores ausentes não podem ser utilizadas.
+  # O infinito garante que elas não sejam escolhidas como melhores.
+  erros[is.na(erros)] = Inf
+
+  # Escolhe, em cada linha, a combinação com o menor erro.
+  # Em caso de empate, escolhe a primeira combinação encontrada.
+  melhor = max.col(-erros, ties.method = "first")
+
+  # Cria os índices das linhas da matriz.
+  pos = seq_along(melhor)
+
+  # Recupera o erro da melhor combinação de cada linha.
+  erro = erros[cbind(pos, melhor)]
+
+  # Recupera os valores de início e fim escolhidos.
+  ini = ini_num[cbind(pos, combos$i[melhor])]
+  fim = fim_num[cbind(pos, combos$f[melhor])]
+
+  # Se nenhuma combinação puder ser validada, prioriza:
+  # ISO, depois DMY e, por último, MDY.
+  sem_ref = is.infinite(erro)
+
+  ini[sem_ref] = dplyr::coalesce(
+    ini_num[, 1],
+    ini_num[, 2],
+    ini_num[, 3]
+  )[sem_ref]
+
+  fim[sem_ref] = dplyr::coalesce(
+    fim_num[, 1],
+    fim_num[, 2],
+    fim_num[, 3]
+  )[sem_ref]
+
+  # Retorna as datas corrigidas, o erro e a indicação de ambiguidade.
+  list(
+    ini = segundos_para_posix(ini, tz),
+    fim = segundos_para_posix(fim, tz),
+    erro = erro,
+    ambigua = eh_ambigua(ci) | eh_ambigua(cf)
+  )
+}
+
+
+# Corrige as datas das sessões utilizando duracao_minutos como referência.
+corrigir_datas_sessoes = function(sessoes) {
+
+  # Garante que as colunas ainda sejam textos.
+  exigir_texto(
+    sessoes,
+    c("data_inicio_sessao", "data_fim_sessao")
+  )
+
+  # Tenta resolver as datas com base na duração de cada sessão.
+  r = resolve_por_duracao(
+    sessoes$data_inicio_sessao,
+    sessoes$data_fim_sessao,
+    sessoes$duracao_minutos
+  )
+
+  # Exibe um resumo da qualidade da correção.
+  cat(
+    "Sessões - linhas com data ambígua:", sum(r$ambigua),
+    "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
+    "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
+  )
+
+  # Substitui as colunas originais pelas datas corrigidas.
+  sessoes %>%
+    mutate(
+      data_inicio_sessao = r$ini,
+      data_fim_sessao = r$fim
+    )
+}
+
+
+# Corrige as datas das partidas utilizando a duração como referência.
+corrigir_datas_partidas = function(partidas) {
+
+  # Verifica se as duas colunas de datas ainda são textos.
+  exigir_texto(
+    partidas,
+    c("data_inicio_partida", "data_fim_partida")
+  )
+
+  # Testa as combinações de formatos para início e fim.
+  r = resolve_por_duracao(
+    partidas$data_inicio_partida,
+    partidas$data_fim_partida,
+    partidas$duracao_minutos
+  )
+
+  # Mostra quantas datas são ambíguas e quantas foram validadas.
+  cat(
+    "Partidas - linhas com data ambígua:", sum(r$ambigua),
+    "| resolvidas pela duração:", sum(r$ambigua & r$erro <= 0.5),
+    "| sem combinação compatível:", sum(r$erro > 0.5), "\n"
+  )
+
+  # Devolve a tabela com as datas corrigidas.
+  partidas %>%
+    mutate(
+      data_inicio_partida = r$ini,
+      data_fim_partida = r$fim
+    )
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Etapa 4 - Correções: Compras: `corrigir_datas` + intervalo da sessão
+
+A compra sempre acontece dentro do intervalo da sua sessão. Para datas ambíguas, vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas couberem, assume dd/mm.
+
+```{r Compras}
+
+# Calcula a data correta de cada compra utilizando o intervalo
+# da sessão à qual a compra está associada.
+corrigir_datas_compras = function(compras, sessoes) {
+
+  # Confirma que a data da compra ainda está armazenada como texto.
+  exigir_texto(compras, "data_compra")
+
+  # Obtém as possíveis interpretações da data de cada compra.
+  cand = datas_corrigidas(compras$data_compra, hora = TRUE)
+
+  # Converte as datas para valores numéricos para facilitar comparações.
+  n_iso = as.numeric(cand$iso)
+  n_dmy = as.numeric(cand$dmy)
+  n_mdy = as.numeric(cand$mdy)
+
+  # Localiza a sessão correspondente a cada compra.
+  # match() retorna a posição da sessão com o mesmo sessao_id.
+  pos_sessao = match(compras$sessao_id, sessoes$sessao_id)
+
+  # Obtém os horários de início e fim das sessões correspondentes.
+  ini_n = as.numeric(sessoes$data_inicio_sessao[pos_sessao])
+  fim_n = as.numeric(sessoes$data_fim_sessao[pos_sessao])
+
+  # Verifica se uma data está dentro do intervalo da sessão.
+  dentro = function(x) {
+    !is.na(x) &
+      !is.na(ini_n) &
+      x >= ini_n &
+      x <= fim_n
+  }
+
+  # Define a data final seguindo esta prioridade:
+  # 1. ISO, quando disponível;
+  # 2. DMY, se estiver dentro da sessão;
+  # 3. MDY, se estiver dentro da sessão;
+  # 4. DMY como alternativa;
+  # 5. MDY, caso DMY não esteja disponível.
+  nova = ifelse(
+    !is.na(n_iso), n_iso,
+    ifelse(
+      dentro(n_dmy), n_dmy,
+      ifelse(
+        dentro(n_mdy), n_mdy,
+        ifelse(!is.na(n_dmy), n_dmy, n_mdy)
+      )
+    )
+  )
+
+  # Identifica datas em que DMY e MDY representam dias diferentes.
+  amb = eh_ambigua(cand)
+
+  # Informa quantas ambiguidades foram resolvidas pelo intervalo
+  # da sessão e quantas continuam sem uma decisão clara.
+  cat(
+    "Compras - datas ambíguas:", sum(amb),
+    "| resolvidas pela sessão:",
+    sum(amb & (dentro(n_dmy) != dentro(n_mdy))),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb & (dentro(n_dmy) == dentro(n_mdy))), "\n"
+  )
+
+  # Atualiza a coluna data_compra e retorna a tabela.
+  compras %>%
+    mutate(data_compra = segundos_para_posix(nova))
+}
+
+```
+
+------------------------------------------------------------------------
+
+### Etapa 4 - Correções: Jogadores
+
+**`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
+
+**`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
+
+`data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
+
+```{r}
+
+# Calcula a idade completa de uma pessoa em uma data de referência.
+idade_em = function(nasc, ref) {
+
+  # Calcula a diferença entre os anos de referência e nascimento.
+  anos = as.numeric(format(ref, "%Y")) -
+    as.numeric(format(nasc, "%Y"))
+
+  # Se a pessoa ainda não fez aniversário no ano de referência,
+  # subtrai um ano do resultado.
+  anos - (format(nasc, "%m%d") > format(ref, "%m%d"))
+}
+
+
+# Corrige as datas de nascimento e de criação das contas dos jogadores.
+corrigir_datas_jogadores = function(
+  jogadores,
+  sessoes,
+  data_ref = as.Date("2026-10-19")
+) {
+
+  # Verifica se as duas colunas de datas ainda são textos.
+  exigir_texto(
+    jogadores,
+    c("data_nascimento", "data_criacao_conta")
+  )
+
+  # Guarda a quantidade de jogadores e cria índices das linhas.
+  n = nrow(jogadores)
+  pos = seq_len(n)
+
+  # ---------------------------------------------------------
+  # PARTE 1: CORREÇÃO DA DATA DE NASCIMENTO
+  # ---------------------------------------------------------
+
+  # Gera as possíveis interpretações das datas de nascimento.
+  cn = datas_corrigidas(
+    jogadores$data_nascimento,
+    hora = FALSE
+  )
+
+  # Armazena as três interpretações em uma matriz numérica.
+  num_n = cbind(
+    as.numeric(cn$iso),
+    as.numeric(cn$dmy),
+    as.numeric(cn$mdy)
+  )
+
+  # Calcula a diferença entre a idade de cada interpretação
+  # e a idade informada na tabela de jogadores.
+  erros_n = matrix(
+    unlist(
+      lapply(cn, function(d) {
+        abs(idade_em(d, data_ref) - jogadores$idade)
+      })
+    ),
+    nrow = n
+  )
+
+  # Interpretações inválidas recebem erro infinito.
+  erros_n[is.na(erros_n)] = Inf
+
+  # Seleciona a interpretação que apresenta o menor erro de idade.
+  melhor_n = max.col(-erros_n, ties.method = "first")
+
+  # Recupera a data de nascimento escolhida para cada jogador.
+  nasc_num = num_n[cbind(pos, melhor_n)]
+
+  # Identifica os casos em que nenhuma interpretação foi validada.
+  sem_ref = is.infinite(erros_n[cbind(pos, melhor_n)])
+
+  # Quando não houver uma referência válida, prioriza ISO, DMY e MDY.
+  nasc_num[sem_ref] = dplyr::coalesce(
+    num_n[, 1],
+    num_n[, 2],
+    num_n[, 3]
+  )[sem_ref]
+
+  # Converte os valores numéricos selecionados para Date.
+  nasc = as.Date(nasc_num, origin = "1970-01-01")
+
+  # Confere a consistência das datas originalmente interpretadas como ISO.
+  iso_ok = !is.na(cn$iso)
+
+  # Calcula o percentual de datas ISO cuja idade coincide com a informada.
+  pct_ok = mean(
+    idade_em(cn$iso[iso_ok], data_ref) ==
+      jogadores$idade[iso_ok],
+    na.rm = TRUE
+  )
+
+  # Identifica as datas de nascimento ambíguas.
+  amb_n = eh_ambigua(cn)
+
+  # Exibe indicadores de consistência da correção.
+  cat(
+    "Nascimento - conferência (datas ISO que batem com idade):",
+    round(100 * pct_ok, 1), "%\n"
+  )
+
+  cat(
+    "Nascimento - datas ambíguas:", sum(amb_n),
+    "| resolvidas pela idade:",
+    sum(amb_n & (erros_n[, 2] != erros_n[, 3])),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb_n & (erros_n[, 2] == erros_n[, 3])), "\n"
+  )
+
+  # ---------------------------------------------------------
+  # PARTE 2: CORREÇÃO DA DATA DE CRIAÇÃO DA CONTA
+  # ---------------------------------------------------------
+
+  # Gera as possíveis interpretações das datas de criação.
+  cc = datas_corrigidas(
+    jogadores$data_criacao_conta,
+    hora = FALSE
+  )
+
+  # Separa as três interpretações em valores numéricos.
+  c_iso = as.numeric(cc$iso)
+  c_dmy = as.numeric(cc$dmy)
+  c_mdy = as.numeric(cc$mdy)
+
+  # Define o limite inferior permitido para a criação da conta.
+  # A conta deve ter sido criada após o jogador completar 13 anos
+  # e depois de 01/01/2010.
+  lim_inf = pmax(
+    as.numeric(nasc %m+% years(13)),
+    as.numeric(as.Date("2010-01-01")),
+    na.rm = TRUE
+  )
+
+  # Encontra a primeira sessão de cada jogador.
+  # tapply() agrupa as datas pelo identificador player_id e calcula o mínimo.
+  prim = tapply(
+    as.numeric(as.Date(sessoes$data_inicio_sessao)),
+    sessoes$player_id,
+    min,
+    na.rm = TRUE
+  )
+
+  # Recupera a primeira sessão correspondente a cada jogador.
+  lim_sup = as.numeric(
+    prim[as.character(jogadores$player_id)]
+  )
+
+  # A criação da conta não pode ultrapassar a data de referência.
+  # O limite superior é o menor valor entre a primeira sessão
+  # e a data de referência.
+  lim_sup = pmin(
+    lim_sup,
+    as.numeric(data_ref),
+    na.rm = TRUE
+  )
+
+  # Verifica se uma data está entre os limites permitidos.
+  dentro = function(x) {
+    !is.na(x) &
+      x >= lim_inf &
+      x <= lim_sup
+  }
+
+  # Escolhe a data de criação seguindo esta prioridade:
+  # 1. ISO, quando disponível;
+  # 2. DMY, se respeitar os limites;
+  # 3. MDY, se respeitar os limites;
+  # 4. DMY como alternativa;
+  # 5. MDY, caso DMY não esteja disponível.
+  cria = ifelse(
+    !is.na(c_iso), c_iso,
+    ifelse(
+      dentro(c_dmy), c_dmy,
+      ifelse(
+        dentro(c_mdy), c_mdy,
+        ifelse(!is.na(c_dmy), c_dmy, c_mdy)
+      )
+    )
+  )
+
+  # Identifica as datas de criação ambíguas.
+  amb_c = eh_ambigua(cc)
+
+  # Exibe o resultado da validação das datas de criação.
+  cat(
+    "Criação da conta - datas ambíguas:", sum(amb_c),
+    "| resolvidas pelos limites:",
+    sum(amb_c & (dentro(c_dmy) != dentro(c_mdy))),
+    "| ainda ambíguas (assumido dd/mm):",
+    sum(amb_c & (dentro(c_dmy) == dentro(c_mdy))), "\n"
+  )
+
+  # Retorna a tabela atualizada com as duas datas corrigidas.
+  jogadores %>%
+    mutate(
+      data_nascimento = nasc,
+      data_criacao_conta = as.Date(
+        cria,
+        origin = "1970-01-01"
+      )
+    )
+}
+
+```
+
+------------------------------------------------------------------------
+
+Para cada linha, usando o `pais` como chave:
+
+1.  Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
+2.  Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
+3.  Se não achar, mantém o texto e lista no console para completar o dicionário.
+
+```{r Configuração do Mapeamento e Validação de Países/Estados}
+
+# Vetor de correspondência: Nome do país -> Código ISO de 2 letras
+pais_para_iso = c(
+  "Brasil" = "BR", "Estados Unidos" = "US", "Portugal" = "PT", "Espanha" = "ES",
+  "França" = "FR", "Alemanha" = "DE", "Itália" = "IT", "Reino Unido" = "GB",
+  "Canadá" = "CA", "Austrália" = "AU", "México" = "MX", "Argentina" = "AR"
+)
+
+# Função para buscar o código ISO do país de forma robusta
+# Normaliza o nome do país usando 'chave_texto' para ignorar maiúsculas/minúsculas e acentos
+iso_do_pais = function(pais) {
+  tabela = setNames(pais_para_iso, chave_texto(names(pais_para_iso)))
+  unname(tabela[chave_texto(pais)])
+}
+
+# Cria um vetor de siglas oficiais válidas por país a partir do pacote ISOcodes
+# O formato final gerado na chave é "ISO_PAIS SIGLA_ESTADO" (Ex: "BR SP", "US CA")
+siglas_validas = ISOcodes::ISO_3166_2 %>%
+  filter(str_sub(Code, 1, 2) %in% pais_para_iso) %>%
+  transmute(chave = paste(str_sub(Code, 1, 2), str_sub(Code, 4))) %>%
+  pull(chave)
+
+
+# --- Dicionário de Equivalência de Nomes de Estados/Regiões ---
+
+# Tabela manual que mapeia múltiplas grafias ou variações de nomes para a sigla padrão correspondente
+dic_estados = tribble(
+  ~pais_iso, ~sigla, ~nomes,
+  # Brasil
+  "BR", "DF", "Federal District|Distrito Federal",
+  # Reino Unido
+  "GB", "ENG", "England",
+  "GB", "SCT", "Scotland",
+  "GB", "WLS", "Wales|Cymru",
+  "GB", "NIR", "Northern Ireland",
+  # Alemanha
+  "DE", "BW", "Baden-Württemberg|Baden-Wuerttemberg",
+  "DE", "BY", "Bavaria|Bayern",
+  "DE", "BE", "Berlin|State of Berlin",
+  "DE", "BB", "Brandenburg",
+  "DE", "HB", "Bremen",
+  "DE", "HH", "Hamburg",
+  "DE", "HE", "Hesse|Hessen",
+  "DE", "MV", "Mecklenburg-Vorpommern|Mecklenburg-West Pomerania",
+  "DE", "NI", "Lower Saxony|Niedersachsen",
+  "DE", "NW", "North Rhine-Westphalia|Nordrhein-Westfalen",
+  "DE", "RP", "Rheinland-Pfalz|Rhineland-Palatinate",
+  "DE", "SL", "Saarland",
+  "DE", "SN", "Saxony|Sachsen",
+  "DE", "ST", "Saxony-Anhalt|Sachsen-Anhalt",
+  "DE", "SH", "Schleswig-Holstein",
+  "DE", "TH", "Thuringia|Thüringen",
+  # França
+  "FR", "ARA", "Auvergne-Rhône-Alpes|Rhône-Alpes|Auvergne",
+  "FR", "BFC", "Bourgogne-Franche-Comté|Bourgogne|Franche-Comté",
+  "FR", "BRE", "Brittany|Bretagne",
+  "FR", "CVL", "Centre-Val de Loire|Centre",
+  "FR", "COR", "Corsica|Corse",
+  "FR", "GES", "Grand Est|Alsace|Champagne-Ardenne|Lorraine",
+  "FR", "HDF", "Hauts-de-France|Nord-Pas-de-Calais|Picardie",
+  "FR", "IDF", "Île-de-France",
+  "FR", "NOR", "Normandy|Normandie|Basse-Normandie|Haute-Normandie",
+  "FR", "NAQ", "Nouvelle-Aquitaine|New Aquitaine|Aquitaine|Limousin|Poitou-Charentes",
+  "FR", "OCC", "Occitania|Occitanie|Languedoc-Roussillon|Midi-Pyrénées",
+  "FR", "PDL", "Pays de la Loire",
+  "FR", "PAC", "Provence-Alpes-Côte d'Azur",
+  # Espanha
+  "ES", "AN", "Andalusia|Andalucía",
+  "ES", "AR", "Aragon|Aragón",
+  "ES", "AS", "Asturias|Principality of Asturias|Principado de Asturias",
+  "ES", "IB", "Balearic Islands|Illes Balears|Islas Baleares",
+  "ES", "PV", "Basque Country|País Vasco|Euskadi",
+  "ES", "CN", "Canary Islands|Canarias|Islas Canarias",
+  "ES", "CB", "Cantabria",
+  "ES", "CM", "Castille-La Mancha|Castilla-La Mancha|Castile-La Mancha",
+  "ES", "CL", "Castille and León|Castilla y León|Castile and León|Castile and Leon",
+  "ES", "CT", "Catalonia|Cataluña|Catalunya",
+  "ES", "CE", "Ceuta",
+  "ES", "EX", "Extremadura",
+  "ES", "GA", "Galicia",
+  "ES", "RI", "La Rioja",
+  "ES", "MD", "Madrid|Comunidad de Madrid",
+  "ES", "ME", "Melilla",
+  "ES", "MC", "Murcia|Región de Murcia",
+  "ES", "NC", "Navarre|Navarra",
+  "ES", "VC", "Valencia|Comunidad Valenciana|Comunitat Valenciana",
+  # Itália
+  "IT", "21", "Piedmont|Piemonte",
+  "IT", "23", "Aosta Valley|Valle d'Aosta",
+  "IT", "25", "Lombardy|Lombardia",
+  "IT", "32", "Trentino-Alto Adige|Trentino-Südtirol",
+  "IT", "34", "Veneto",
+  "IT", "36", "Friuli Venezia Giulia|Friuli-Venezia Giulia",
+  "IT", "42", "Liguria",
+  "IT", "45", "Emilia-Romagna",
+  "IT", "52", "Tuscany|Toscana",
+  "IT", "55", "Umbria",
+  "IT", "57", "Marche|The Marches",
+  "IT", "62", "Latium|Lazio",
+  "IT", "65", "Abruzzo",
+  "IT", "67", "Molise",
+  "IT", "72", "Campania",
+  "IT", "75", "Apulia|Puglia",
+  "IT", "77", "Basilicate|Basilicata",
+  "IT", "78", "Calabria",
+  "IT", "82", "Sicily|Sicilia",
+  "IT", "88", "Sardinia|Sardegna",
+  # Portugal
+  "PT", "01", "Aveiro",
+  "PT", "02", "Beja",
+  "PT", "03", "Braga",
+  "PT", "04", "Bragança|Braganca",
+  "PT", "05", "Castelo Branco",
+  "PT", "06", "Coimbra",
+  "PT", "07", "Évora",
+  "PT", "08", "Faro",
+  "PT", "09", "Guarda",
+  "PT", "10", "Leiria",
+  "PT", "11", "Lisbon|Lisboa",
+  "PT", "12", "Portalegre",
+  "PT", "13", "Porto",
+  "PT", "14", "Santarém",
+  "PT", "15", "Setúbal",
+  "PT", "16", "Viana do Castelo",
+  "PT", "17", "Vila Real",
+  "PT", "18", "Viseu",
+  "PT", "20", "Azores|Açores|Região Autónoma dos Açores",
+  "PT", "30", "Madeira|Região Autónoma da Madeira",
+  # México
+  "MX", "AGU", "Aguascalientes",
+  "MX", "BCN", "Baja California",
+  "MX", "BCS", "Baja California Sur",
+  "MX", "CAM", "Campeche",
+  "MX", "CHP", "Chiapas",
+  "MX", "CHH", "Chihuahua",
+  "MX", "CMX", "Mexico City|Ciudad de México|Distrito Federal",
+  "MX", "COA", "Coahuila|Coahuila de Zaragoza",
+  "MX", "COL", "Colima",
+  "MX", "DUR", "Durango",
+  "MX", "GUA", "Guanajuato",
+  "MX", "GRO", "Guerrero",
+  "MX", "HID", "Hidalgo",
+  "MX", "JAL", "Jalisco",
+  "MX", "MEX", "México|Estado de México|State of Mexico",
+  "MX", "MIC", "Michoacán|Michoacán de Ocampo",
+  "MX", "MOR", "Morelos",
+  "MX", "NAY", "Nayarit",
+  "MX", "NLE", "Nuevo León",
+  "MX", "OAX", "Oaxaca",
+  "MX", "PUE", "Puebla",
+  "MX", "QUE", "Querétaro|Querétaro de Arteaga",
+  "MX", "ROO", "Quintana Roo",
+  "MX", "SLP", "San Luis Potosí",
+  "MX", "SIN", "Sinaloa",
+  "MX", "SON", "Sonora",
+  "MX", "TAB", "Tabasco",
+  "MX", "TAM", "Tamaulipas",
+  "MX", "TLA", "Tlaxcala",
+  "MX", "VER", "Veracruz|Veracruz de Ignacio de la Llave",
+  "MX", "YUC", "Yucatán",
+  "MX", "ZAC", "Zacatecas",
+  # Argentina
+  "AR", "A", "Salta",
+  "AR", "B", "Buenos Aires|Provincia de Buenos Aires",
+  "AR", "C", "Ciudad Autónoma de Buenos Aires|Buenos Aires F.D.|Buenos Aires Federal District|Capital Federal",
+  "AR", "D", "San Luis",
+  "AR", "E", "Entre Ríos",
+  "AR", "F", "La Rioja",
+  "AR", "G", "Santiago del Estero",
+  "AR", "H", "Chaco",
+  "AR", "J", "San Juan",
+  "AR", "K", "Catamarca",
+  "AR", "L", "La Pampa",
+  "AR", "M", "Mendoza",
+  "AR", "N", "Misiones",
+  "AR", "P", "Formosa",
+  "AR", "Q", "Neuquén",
+  "AR", "R", "Río Negro",
+  "AR", "S", "Santa Fe",
+  "AR", "T", "Tucumán",
+  "AR", "U", "Chubut",
+  "AR", "V", "Tierra del Fuego",
+  "AR", "W", "Corrientes",
+  "AR", "X", "Córdoba",
+  "AR", "Y", "Jujuy",
+  "AR", "Z", "Santa Cruz"
+)
+
+
+# --- Transformação do Dicionário para Formato Longo ---
+
+# Divide a coluna 'nomes' onde houver o caractere "|" para separar cada variação gráfica
+partes = strsplit(dic_estados$nomes, "|", fixed = TRUE)
+
+# Cria um novo data frame onde cada linha possui apenas uma grafia (formato longo)
+dic_long = data.frame(
+  pais_iso = rep(dic_estados$pais_iso, lengths(partes)),
+  sigla    = rep(dic_estados$sigla, lengths(partes)),
+  chave    = chave_texto(unlist(partes)), # Normaliza o nome da variação como chave de busca
+  stringsAsFactors = FALSE
+) %>% distinct(pais_iso, chave, sigla)          # Remove duplicatas exatas
+
+# Validação de integridade: garante que uma mesma chave de texto não aponte para siglas diferentes no mesmo país
+conflitos = dic_long %>% group_by(pais_iso, chave) %>% filter(n_distinct(sigla) > 1)
+stopifnot(nrow(conflitos) == 0) # Interrompe a execução caso existam conflitos de mapeamento
+
+# Cria um vetor nomeado final para busca rápida. Ex: "BR distrito federal" = "DF"
+dic_vec = setNames(dic_long$sigla, paste(dic_long$pais_iso, dic_long$chave))
+```
+
+```{r Função Principal de Correção dos Estados}
+
+corrigir_estados = function(df) {
+  # Obtém os códigos ISO dos países presentes no dataframe informado
+  iso      = iso_do_pais(df$pais)
+  # Remove espaços extras do campo de estado
+  estado   = str_squish(df$estado)
+  # Converte o texto do estado para maiúsculo (caso já seja uma sigla informada)
+  sigla_up = str_to_upper(estado)
+
+  # Condição 1: Verifica se a entrada já é uma sigla válida cadastrada no ISOcodes
+  ja_sigla = !is.na(estado) & !is.na(iso) & paste(iso, sigla_up) %in% siglas_validas
+  
+  # Condição 2: Busca a sigla correspondente no dicionário estendido construído anteriormente
+  por_nome = unname(dic_vec[paste(iso, chave_texto(estado))])
+
+  # Se já era uma sigla válida, mantém a sigla em maiúsculo; caso contrário, usa o mapeamento por nome
+  novo          = ifelse(ja_sigla, sigla_up, por_nome)
+  # Identifica registros com texto de estado que não conseguiram ser mapeados para nenhuma sigla
+  nao_resolvido = !is.na(estado) & is.na(novo)
+
+  # Exibe no console um resumo das conversões realizadas
+  cat("Estado - já era sigla:", sum(ja_sigla),
+      "| convertidos pelo dicionário:", sum(!is.na(novo) & !ja_sigla),
+      "| não resolvidos:", sum(nao_resolvido), "\n")
+
+  # Exibe os casos não resolvidos para facilitar a manutenção do dicionário
+  if (any(nao_resolvido)) {
+    cat("\nNão resolvidos (adicione em dic_estados):\n")
+    print(count(data.frame(pais = df$pais[nao_resolvido], estado = estado[nao_resolvido])))
+  }
+  
+  return(novo) # Nota: Adicionado o retorno do vetor transformado para completar a lógica da função
+}
+```
+
+------------------------------------------------------------------------
+
+## Etapa 5 - Validação {#etapa-5---validação}
+
+### Validação geral
+
+Cada verificação conta quantas linhas violam uma regra e é registrada em um painel. O resultado completo está no final desta seção: `falhas = 0` significa que a regra foi respeitada.
+
+#### Painel e verificações comuns a todas as tabelas
+
+- Linhas duplicadas e chaves (`*_id`) repetidas.
+- Valores ausentes em colunas que o gerador nunca deixa em branco.
+- Textos vazios (`""`) que sobraram.
+
+```{r Validação Geral}
+# Data em que o gerador rodou (HOJE do gerador). Troque se gerar os dados de novo.
+data_ref       = as.Date("2026-10-19")
+fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
+
+# Painel que acumula o resultado de cada verificação
+painel = data.frame(
+  tabela      = character(),
+  verificacao = character(),
+  falhas      = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Registra uma verificação.
+# 'falhas' pode ser um número ou um vetor lógico (cada TRUE conta como uma falha).
+# Valores NA são ignorados.
+checar = function(tabela, verificacao, falhas) {
+  total = sum(falhas, na.rm = TRUE)
+  painel <<- rbind(
+    painel,
+    data.frame(tabela = tabela, verificacao = verificacao,
+               falhas = total, stringsAsFactors = FALSE)
+  )
+  invisible(total)
+}
+
+tabelas = list(
+  compras       = compras_limpas,
+  itens         = itens_limpos,
+  itens_compras = itens_compras_limpos,
+  jogadores     = jogadores_limpos,
+  partidas      = partidas_limpas,
+  sessoes       = sessoes_limpas
+)
+
+# Coluna que identifica cada linha
+chaves = c(compras = "compra_id", itens = "item_id", itens_compras = "item_compra_id",
+           jogadores = "player_id", partidas = "partida_id", sessoes = "sessao_id")
+
+# Colunas em que o gerador deixa valores ausentes de propósito
+na_permitidos = list(
+  compras       = "data_compra",
+  itens         = "raridade",
+  itens_compras = character(0),
+  jogadores     = c("cidade", "estado", "genero"),
+  partidas      = "resultado",
+  sessoes       = "plataforma"
+)
+
+for (nome in names(tabelas)) {
+  df = tabelas[[nome]]
+
+  checar(nome, "linhas duplicadas", duplicated(df))
+  checar(nome, paste(chaves[[nome]], "repetido"), duplicated(df[[chaves[[nome]]]]))
+  checar(nome, "NA em colunas que não deveriam ter ausentes",
+         is.na(df[setdiff(names(df), na_permitidos[[nome]])]))
+  checar(nome, "textos vazios restantes",
+         sum(unlist(lapply(df, function(x) if (is.character(x)) sum(x == "", na.rm = TRUE) else 0))))
+}
+```
+
+------------------------------------------------------------------------
+
+#### Jogadores
+
+```{r Validação de Jogadores}
+j = jogadores_limpos
+
+checar("jogadores", "genero fora da lista",  !is.na(j$genero) & !j$genero %in% generos_validos)
+checar("jogadores", "pais fora da lista",     !j$pais %in% paises_validos)
+checar("jogadores", "estado não é sigla válida do país",
+       !is.na(j$estado) & !(paste(iso_do_pais(j$pais), j$estado) %in% siglas_validas))
+checar("jogadores", "idade fora de 16 a 55",  j$idade < 16 | j$idade > 55)
+checar("jogadores", "nivel_jogador fora de 1 a 100", j$nivel_jogador < 1 | j$nivel_jogador > 100)
+
+# Cidades que ainda aparecem com mais de uma grafia (só maiúsculas/minúsculas)
+variantes_cidade = j %>%
+  filter(!is.na(cidade)) %>%
+  distinct(cidade) %>%
+  mutate(chave = str_to_lower(cidade)) %>%
+  count(chave) %>%
+  filter(n > 1)
+checar("jogadores", "cidades com mais de uma grafia", nrow(variantes_cidade))
+
+# Datas
+checar("jogadores", "datas não convertidas para Date",
+       !(inherits(j$data_nascimento, "Date") & inherits(j$data_criacao_conta, "Date")))
+checar("jogadores", "idade não bate com data_nascimento",
+       idade_em(j$data_nascimento, data_ref) != j$idade)
+checar("jogadores", "conta criada antes dos 13 anos ou antes de 2010",
+       as.numeric(j$data_criacao_conta) <
+         pmax(as.numeric(j$data_nascimento %m+% years(13)), as.numeric(as.Date("2010-01-01"))))
+checar("jogadores", "conta criada depois da data de geração", j$data_criacao_conta > data_ref)
+
+# A conta não pode ser criada depois da primeira sessão do jogador
+prim_sessao = sessoes_limpas %>%
+  group_by(player_id) %>%
+  summarise(primeira = min(as.Date(data_inicio_sessao), na.rm = TRUE), .groups = "drop")
+j_prim = j %>% inner_join(prim_sessao, by = "player_id")
+checar("jogadores", "conta criada depois da primeira sessão", j_prim$data_criacao_conta > j_prim$primeira)
+```
+
+------------------------------------------------------------------------
+
+#### Sessões
+
+```{r Validação das Sessões}
+s = sessoes_limpas
+
+checar("sessoes", "plataforma fora da lista", !is.na(s$plataforma) & !s$plataforma %in% plataformas_validas)
+checar("sessoes", "genero_jogo fora da lista", !s$genero_jogo %in% generos_jogo_validos)
+
+# Combinações plataforma x gênero permitidas pelo gerador
+combinacoes_validas = tibble(
+  genero_jogo = c(rep(c("FPS", "RPG", "Ação", "Aventura", "Corrida", "Esportes",
+                        "Simulação", "Luta", "Survival"), each = 3),
+                  "Estratégia", "MOBA", "MOBA"),
+  plataforma  = c(rep(c("PC", "PlayStation", "Xbox"), times = 9), "PC", "PC", "Mobile")
+)
+checar("sessoes", "combinação plataforma x gênero inválida",
+       nrow(s %>%
+              filter(!is.na(plataforma)) %>%
+              anti_join(combinacoes_validas, by = c("genero_jogo", "plataforma"))))
+
+# Datas e durações
+dur_s = as.numeric(difftime(s$data_fim_sessao, s$data_inicio_sessao, units = "mins"))
+checar("sessoes", "fim antes do início", dur_s < 0)
+checar("sessoes", "duração diferente de duracao_minutos", abs(dur_s - s$duracao_minutos) > 1)
+checar("sessoes", "sessão termina depois da data de geração", s$data_fim_sessao > fim_do_dia_ref)
+checar("sessoes", "nivel_fim menor que nivel_inicio", s$nivel_fim < s$nivel_inicio)
+
+# Relação com jogadores
+checar("sessoes", "player_id inexistente em jogadores", !s$player_id %in% jogadores_limpos$player_id)
+s_conta = s %>%
+  select(sessao_id, player_id, data_inicio_sessao) %>%
+  inner_join(jogadores_limpos %>% select(player_id, data_criacao_conta), by = "player_id")
+checar("sessoes", "sessão começa antes da criação da conta",
+       as.Date(s_conta$data_inicio_sessao) < s_conta$data_criacao_conta)
+```
+
+------------------------------------------------------------------------
+
+#### Partidas
+
+```{r Validação das Partidas}
+p = partidas_limpas
+
+checar("partidas", "resultado fora da lista", !is.na(p$resultado) & !p$resultado %in% resultados_validos)
+
+dur_p = as.numeric(difftime(p$data_fim_partida, p$data_inicio_partida, units = "mins"))
+checar("partidas", "fim antes do início", dur_p < 0)
+checar("partidas", "duração diferente de duracao_minutos", abs(dur_p - p$duracao_minutos) > 1)
+checar("partidas", "pontuação fora de 0 a 5000", p$pontuacao < 0 | p$pontuacao > 5000)
+checar("partidas", "experiencia_ganha negativa", p$experiencia_ganha < 0)
+
+# Relação com sessões
+checar("partidas", "sessao_id inexistente em sessoes", !p$sessao_id %in% sessoes_limpas$sessao_id)
+p_sessao = p %>%
+  select(partida_id, sessao_id, data_inicio_partida, data_fim_partida) %>%
+  inner_join(sessoes_limpas %>% select(sessao_id, data_inicio_sessao, data_fim_sessao), by = "sessao_id")
+checar("partidas", "partida fora do intervalo da sessão",
+       p_sessao$data_inicio_partida < p_sessao$data_inicio_sessao |
+         p_sessao$data_fim_partida > p_sessao$data_fim_sessao)
+```
+
+------------------------------------------------------------------------
+
+#### Compras
+
+```{r Validação das Compras}
+cp = compras_limpas
+
+checar("compras", "data_compra não convertida para data-hora", !inherits(cp$data_compra, "POSIXct"))
+checar("compras", "sessao_id inexistente em sessoes", !cp$sessao_id %in% sessoes_limpas$sessao_id)
+
+# A compra acontece dentro da sessão
+cp_sessao = cp %>%
+  filter(!is.na(data_compra)) %>%
+  select(compra_id, sessao_id, data_compra) %>%
+  inner_join(sessoes_limpas %>% select(sessao_id, data_inicio_sessao, data_fim_sessao), by = "sessao_id")
+checar("compras", "compra fora do intervalo da sessão",
+       cp_sessao$data_compra < cp_sessao$data_inicio_sessao |
+         cp_sessao$data_compra > cp_sessao$data_fim_sessao)
+
+# ... e fora de qualquer partida da mesma sessão
+cp_partida = suppressWarnings(
+  cp %>%
+    filter(!is.na(data_compra)) %>%
+    select(compra_id, sessao_id, data_compra) %>%
+    inner_join(partidas_limpas %>% select(sessao_id, data_inicio_partida, data_fim_partida),
+               by = "sessao_id")
+)
+checar("compras", "compra durante uma partida",
+       cp_partida$data_compra >= cp_partida$data_inicio_partida &
+         cp_partida$data_compra <= cp_partida$data_fim_partida)
+
+# Toda compra tem pelo menos um item
+checar("compras", "compra sem nenhum item em itens_compras", !cp$compra_id %in% itens_compras_limpos$compra_id)
+```
+
+------------------------------------------------------------------------
+
+#### Itens e itens da compra
+
+```{r Validação de Itens}
+it = itens_limpos
+
+checar("itens", "nome_item fora da lista",      !it$nome_item %in% nomes_validos)
+checar("itens", "categoria_item fora da lista", !it$categoria_item %in% categorias_validas)
+checar("itens", "raridade fora da lista",       !is.na(it$raridade) & !it$raridade %in% raridades_validas)
+checar("itens", "preco_base não numérico ou ausente", !is.numeric(it$preco_base) | is.na(it$preco_base))
+checar("itens", "preco_base menor ou igual a zero", it$preco_base <= 0)
+
+# nome_item x categoria_item devem bater com o catálogo do gerador
+catalogo_itens = tibble(
+  nome_item      = nomes_validos,
+  categoria_item = rep(categorias_validas, times = c(6, 3, 4, 4, 4, 3, 3, 3, 3, 4))
+)
+checar("itens", "nome/categoria fora do catálogo",
+       nrow(it %>% anti_join(catalogo_itens, by = c("nome_item", "categoria_item"))))
+
+# Preços permitidos por raridade
+precos_validos = tibble(
+  raridade   = rep(c("Comum", "Incomum", "Rara", "Épica", "Lendária"), times = c(2, 3, 3, 3, 3)),
+  preco_base = c(4.90, 9.90,
+                 9.90, 14.90, 19.90,
+                 19.90, 24.90, 29.90,
+                 29.90, 39.90, 49.90,
+                 49.90, 59.90, 79.90)
+)
+checar("itens", "preço incompatível com a raridade",
+       nrow(it %>%
+              filter(!is.na(raridade)) %>%
+              mutate(preco_base = round(preco_base, 2)) %>%
+              anti_join(precos_validos %>% mutate(preco_base = round(preco_base, 2)),
+                        by = c("raridade", "preco_base"))))
+```
+
+```{r Validação de Itens_Compra}
+ic = itens_compras_limpos
+
+checar("itens_compras", "valores numéricos não convertidos",
+       !(is.numeric(ic$valor_unitario) & is.numeric(ic$desconto) & is.numeric(ic$valor_total_item)))
+checar("itens_compras", "quantidade fora de 1 a 3", !ic$quantidade %in% 1:3)
+checar("itens_compras", "valor_total_item inconsistente",
+       abs(ic$valor_unitario * ic$quantidade - ic$desconto - ic$valor_total_item) > 0.011)
+
+# Percentual de desconto permitido pelo gerador
+pct_desconto = round(ic$desconto / (ic$valor_unitario * ic$quantidade), 2)
+checar("itens_compras", "percentual de desconto inválido", !pct_desconto %in% c(0, 0.05, 0.10, 0.15, 0.20))
+
+# Relação com compras e itens
+checar("itens_compras", "compra_id inexistente em compras", !ic$compra_id %in% compras_limpas$compra_id)
+checar("itens_compras", "item_id inexistente em itens",     !ic$item_id %in% itens_limpos$item_id)
+checar("itens_compras", "mesmo item repetido na mesma compra", duplicated(ic[c("compra_id", "item_id")]))
+
+ic_item = ic %>% inner_join(itens_limpos %>% select(item_id, categoria_item, preco_base), by = "item_id")
+checar("itens_compras", "valor_unitario diferente do preco_base", abs(ic_item$valor_unitario - ic_item$preco_base) > 0.011)
+checar("itens_compras", "mais de 1 unidade em DLC, Passe de batalha ou Personagem",
+       ic_item$categoria_item %in% c("DLC", "Passe de batalha", "Personagem") & ic_item$quantidade != 1)
+```
+
+------------------------------------------------------------------------
+
+#### Resultado da Validação
+
+```{r Resultado da Validação}
+painel$status = ifelse(painel$falhas == 0, "OK", "FALHA")
+
+# Verificações com falha aparecem primeiro
+print(painel[order(painel$status, -painel$falhas), ], row.names = FALSE)
+
+cat("\nVerificações:", nrow(painel),
+    "| OK:", sum(painel$status == "OK"),
+    "| com falha:", sum(painel$status == "FALHA"), "\n")
+```
+
+------------------------------------------------------------------------
+
+## Etapa 6 - Geração dos Gráficos {#etapa-6---geração-dos-gráficos}
+
+Antes de gerar os gráficos de AED com a biblioteca `ggplot2`, iremos utilizar ferramentas de estatística descritiva, como média, moda, mediana, quartis, desvio padrão, etc para levantar algumas informações númericas que possam gerar insights preciosos posteriormente
+
+```{r Análise de Valores com Estatística Descritiva - Duração da Sessão}
+# Verificar o nome das observações dos datasets processados
+cat('Compras limpas:\n')
+names(compras_limpas)
+cat('\n')
+
+cat('Itens limpos:\n')
+names(itens_limpos)
+cat('\n')
+
+cat('Itens_Compras limpos:\n')
+names(itens_compras_limpos)
+cat('\n')
+
+cat('Jogadores limpos:\n')
+names(jogadores_limpos)
+cat('\n')
+
+cat('Partidas limpas:\n')
+names(partidas_limpas)
+cat('\n')
+
+cat('Sessões limpas:\n')
+names(sessoes_limpas)
+
+
+# Média (duracao_sessao)
+media_duracao_sessao = mean(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+max_duracao_sessao = max(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+min_duracao_sessao = min(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+cat('Maior Duração de Sessão:\n')
+round(max_duracao_sessao, 2)
+cat('\n')
+
+cat('Menor Duração de Sessão:\n')
+round(min_duracao_sessao, 2)
+cat('\n')
+
+cat('Média de Duração das Sessões:\n')
+round(media_duracao_sessao, 2)
+cat('\n')
+
+# Mediana
+mediana_duracao_sessao = median(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+cat('Mediana de Duração das Sessões:\n')
+round(mediana_duracao_sessao, 2)
+cat('\n')
+
+# Moda
+sessoes_limpas |> count(duracao_minutos, sort = TRUE)
+
+# Amplitude
+cat('Amplitude Duração das Sessões:\n')
+amplitude_duracao_sessao = max_duracao_sessao - min_duracao_sessao
+amplitude_duracao_sessao
+cat('\n')
+
+# Variância
+variancia_duracao_sessao = var(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão Duração das Sessões:\n')
+dp_duracao_sessao = sqrt(variancia_duracao_sessao)
+round(dp_duracao_sessao, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis Duração das Sessões:\n')
+quantile(sessoes_limpas$duracao_minutos,
+         probs = c(0.25, 0.50, 0.75),
+         na.rm = TRUE)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(sessoes_limpas$duracao_minutos, na.rm = TRUE)
+cat('\n')
+
+# Calcular Outliers
+q1 = quantile(sessoes_limpas$duracao_minutos, 0.25, na.rm = TRUE)
+q3 = quantile(sessoes_limpas$duracao_minutos, 0.75, na.rm = TRUE)
+
+aiq = q3 - q1
+
+cat('Limites Duração das Sessões:\n')
+limite_inferior_duracao = q1 - 1.5 * aiq
+limite_superior_duracao = q3 + 1.5 * aiq
+
+cat(round(limite_inferior_duracao, 2),
+    "———",
+    round(limite_superior_duracao, 2))
+cat('\n')
+
+# Identificar Valores Atípicos
+sessoes_limpas |> filter(
+  duracao_minutos < limite_inferior_duracao |
+    duracao_minutos > limite_superior_duracao
+) |> select(sessao_id, player_id, duracao_minutos, plataforma) |>
+  arrange(duracao_minutos)
+```
+
+```{r Análise de Valores com Estatística Descritiva - Horários e dias com maior atividade}
+# Horários com maior atividade
+cat('Horários com maior atividade:\n')
+
+sessoes_limpas |>
+  mutate(hora = format(data_inicio_sessao, "%H")) |>
+  count(hora, sort = TRUE)
+
+cat('\n')
+
+# Dias da semana com maior atividade
+cat('Dias da semana com maior atividade:\n')
+
+sessoes_limpas |>
+  mutate(dia_semana = weekdays(data_inicio_sessao)) |>
+  count(dia_semana, sort = TRUE)
+
+cat('\n')
+
+# Atividade por dia e horário
+cat('Atividade por dia e horário:\n')
+
+sessoes_limpas |>
+  mutate(
+    hora = format(data_inicio_sessao, "%H"),
+    dia_semana = weekdays(data_inicio_sessao)
+  ) |>
+  count(dia_semana, hora, sort = TRUE)
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Evolução dos jogadores durante as sessões}
+# Criar variável de evolução
+evolucao_jogadores = sessoes_limpas |>
+  mutate(evolucao = nivel_fim - nivel_inicio)
+
+# Média
+media_evolucao = mean(evolucao_jogadores$evolucao, na.rm = TRUE)
+max_evolucao = max(evolucao_jogadores$evolucao, na.rm = TRUE)
+min_evolucao = min(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+cat('Maior Evolução:\n')
+max_evolucao
+cat('\n')
+
+cat('Menor Evolução:\n')
+min_evolucao
+cat('\n')
+
+cat('Média de Evolução:\n')
+round(media_evolucao, 2)
+cat('\n')
+
+# Mediana
+mediana_evolucao = median(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+cat('Mediana de Evolução:\n')
+mediana_evolucao
+cat('\n')
+
+# Moda
+evolucao_jogadores |> count(evolucao, sort = TRUE)
+
+# Amplitude
+cat('Amplitude da Evolução:\n')
+amplitude_evolucao = max_evolucao - min_evolucao
+amplitude_evolucao
+cat('\n')
+
+# Variância
+variancia_evolucao = var(evolucao_jogadores$evolucao, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão da Evolução:\n')
+dp_evolucao = sqrt(variancia_evolucao)
+round(dp_evolucao, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis da Evolução:\n')
+quantile(evolucao_jogadores$evolucao,
+         probs = c(0.25, 0.50, 0.75),
+         na.rm = TRUE)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(evolucao_jogadores$evolucao, na.rm = TRUE)
+cat('\n')
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Relação entre duração da sessão e experiência adquirida}
+# Relacionando sessões com partidas
+experiencia_sessoes = partidas_limpas |>
+  group_by(sessao_id) |>
+  summarise(
+    experiencia_ganha = sum(experiencia_ganha, na.rm = TRUE)
+  ) |>
+  left_join(
+    sessoes_limpas |>
+      select(sessao_id, duracao_minutos),
+    by = "sessao_id"
+  )
+
+# Média
+media_experiencia_sessao = mean(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+max_experiencia_sessao = max(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+min_experiencia_sessao = min(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+cat('Maior Experiência por Sessão:\n')
+max_experiencia_sessao
+cat('\n')
+
+cat('Menor Experiência por Sessão:\n')
+min_experiencia_sessao
+cat('\n')
+
+cat('Média de Experiência por Sessão:\n')
+round(media_experiencia_sessao, 2)
+cat('\n')
+
+# Mediana
+mediana_experiencia_sessao = median(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+cat('Mediana de Experiência por Sessão:\n')
+mediana_experiencia_sessao
+cat('\n')
+
+# Moda
+experiencia_sessoes |>
+  count(experiencia_ganha, sort = TRUE)
+
+# Amplitude
+cat('Amplitude da Experiência:\n')
+amplitude_experiencia = max_experiencia_sessao -
+  min_experiencia_sessao
+
+amplitude_experiencia
+cat('\n')
+
+# Variância
+variancia_experiencia = var(
+  experiencia_sessoes$experiencia_ganha,
+  na.rm = TRUE
+)
+
+# Desvio Padrão
+cat('Desvio Padrão da Experiência:\n')
+dp_experiencia = sqrt(variancia_experiencia)
+round(dp_experiencia, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis da Experiência:\n')
+quantile(
+  experiencia_sessoes$experiencia_ganha,
+  probs = c(0.25, 0.50, 0.75),
+  na.rm = TRUE
+)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(experiencia_sessoes$experiencia_ganha, na.rm = TRUE)
+cat('\n')
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Experiência adquirida por gênero de jogo}
+# Relacionando sessões com partidas
+experiencia_genero = partidas_limpas |>
+  left_join(
+    sessoes_limpas |>
+      select(sessao_id, genero_jogo),
+    by = "sessao_id"
+  )
+
+cat('Experiência média por gênero de jogo:\n')
+
+experiencia_genero |>
+  group_by(genero_jogo) |>
+  summarise(
+    media_experiencia = mean(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(media_experiencia))
+
+cat('Experiência total por gênero de jogo:\n')
+
+experiencia_genero |>
+  group_by(genero_jogo) |>
+  summarise(
+    experiencia_total = sum(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(experiencia_total))
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Itens e categorias mais populares}
+# Quantidade por item
+cat('Itens mais populares:\n')
+
+itens_compras_limpos |>
+  group_by(item_id) |>
+  summarise(
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(quantidade_total))
+
+# Quantidade por categoria
+itens_populares = itens_compras_limpos |>
+  left_join(
+    itens_limpos |>
+      select(item_id, nome_item, categoria_item),
+    by = "item_id"
+  )
+
+cat('Categorias mais populares:\n')
+
+itens_populares |>
+  group_by(categoria_item) |>
+  summarise(
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(desc(quantidade_total))
+
+# Média
+media_quantidade = mean(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+max_quantidade = max(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+min_quantidade = min(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+cat('Maior Quantidade Comprada:\n')
+max_quantidade
+cat('\n')
+
+cat('Menor Quantidade Comprada:\n')
+min_quantidade
+cat('\n')
+
+cat('Média de Quantidade Comprada:\n')
+round(media_quantidade, 2)
+cat('\n')
+
+# Mediana
+mediana_quantidade = median(
+  itens_compras_limpos$quantidade,
+  na.rm = TRUE
+)
+
+cat('Mediana de Quantidade Comprada:\n')
+mediana_quantidade
+cat('\n')
+
+# Moda
+itens_compras_limpos |>
+  count(quantidade, sort = TRUE)
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Evolução do faturamento ao longo do tempo}
+faturamento = itens_compras_limpos |>
+  left_join(
+    compras_limpas |>
+      select(compra_id, data_compra),
+    by = "compra_id"
+  )
+
+cat('Faturamento por data:\n')
+
+faturamento |>
+  group_by(data_compra) |>
+  summarise(
+    faturamento = sum(
+      valor_total_item,
+      na.rm = TRUE
+    )
+  ) |>
+  arrange(data_compra)
+
+# Média (valor_total_item)
+media_valor_total_item = mean(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+max_valor_total_item = max(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+min_valor_total_item = min(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+cat('Máior Valor Total de Itens:\n')
+round(max_valor_total_item, 2)
+cat('\n')
+cat('Menor Valor Total de Itens:\n')
+round(min_valor_total_item, 2)
+cat('\n')
+cat('Média Valor Total de Itens:\n')
+round(media_valor_total_item, 2)
+cat('\n')
+
+# Mediana
+mediana_valor_total_item = median(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+cat('Mediana Valor Total de Itens:\n')
+round(mediana_valor_total_item, 2)
+cat('\n')
+
+# Moda
+itens_compras_limpos |> count(valor_total_item, sort = TRUE)
+
+# Amplitude
+cat('Amplitude Valor Total Item:\n')
+amplitude_valor_total_item = max_valor_total_item - min_valor_total_item
+amplitude_valor_total_item
+cat('\n')
+
+# Variância
+variancia_valor_total_item = var(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+
+# Desvio Padrão
+cat('Desvio Padrão Valor Total Item:\n')
+dp = sqrt(variancia_valor_total_item)
+round(dp, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis Valor Total Item:\n')
+quantile(itens_compras_limpos$valor_total_item, probs = c(0.25, 0.50, 0.75), na.rm = TRUE)
+cat('\n')
+
+# Intervalo inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(itens_compras_limpos$valor_total_item, na.rm = TRUE)
+cat('\n')
+
+# Calcular Outliers
+q1 = quantile(itens_compras_limpos$valor_total_item, 0.25, na.rm = TRUE)
+q3 = quantile(itens_compras_limpos$valor_total_item, 0.75, na.rm = TRUE)
+
+aiq = q3 - q1
+
+cat('Limites Valor Total Item:\n')
+limite_inferior = q1 - 1.5 * aiq
+limite_superior = q3 + 1.5 * aiq
+cat(round(limite_inferior, 2), "———", round(limite_superior, 2))
+cat('\n')
+
+# Identificar Valores Totais atípicos
+itens_compras_limpos |> filter(
+  valor_total_item < limite_inferior |
+    valor_total_item > limite_superior
+) |> select(compra_id, item_id, valor_total_item) |> arrange(valor_total_item)
+
+```
+
+```{r Análise de Valores com Estatística Descritiva - Impacto dos descontos nas compras}
+# Média
+media_desconto = mean(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+max_desconto = max(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+min_desconto = min(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+cat('Maior Desconto:\n')
+round(max_desconto, 2)
+cat('\n')
+
+cat('Menor Desconto:\n')
+round(min_desconto, 2)
+cat('\n')
+
+cat('Média de Desconto:\n')
+round(media_desconto, 2)
+cat('\n')
+
+# Mediana
+mediana_desconto = median(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+cat('Mediana de Desconto:\n')
+round(mediana_desconto, 2)
+cat('\n')
+
+# Moda
+itens_compras_limpos |>
+  count(desconto, sort = TRUE)
+
+# Amplitude
+cat('Amplitude do Desconto:\n')
+amplitude_desconto = max_desconto - min_desconto
+round(amplitude_desconto, 2)
+cat('\n')
+
+# Variância
+variancia_desconto = var(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+
+# Desvio Padrão
+cat('Desvio Padrão do Desconto:\n')
+dp_desconto = sqrt(variancia_desconto)
+round(dp_desconto, 2)
+cat('\n')
+
+# Quartis
+cat('Quartis do Desconto:\n')
+quantile(
+  itens_compras_limpos$desconto,
+  probs = c(0.25, 0.50, 0.75),
+  na.rm = TRUE
+)
+cat('\n')
+
+# Intervalo Inter-quartil
+cat('Intervalo Inter-Quartil:\n')
+IQR(
+  itens_compras_limpos$desconto,
+  na.rm = TRUE
+)
+cat('\n')
+
+# Relacionando desconto com valor total da compra
+cat('Desconto e Valor Total do Item:\n')
+
+itens_compras_limpos |>
+  select(desconto, quantidade, valor_unitario, valor_total_item) |>
+  summary()
+```
+
+1.  Duração das sessões por plataforma
+
+```{r}
+sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
+
+ggplot(
+  sessoes_limpas,
+  aes(
+    x = plataforma,
+    y = duracao_minutos
+  )
+) + geom_col(
+  fill = "lightblue"
+) + labs(
+  title = "Duração das Sessões por Plataforma",
+  x = "Plataforma",
+  y = "Duração (min)"
+) + scale_y_continuous(
+  labels = scales::label_number(big.mark = ".", decimal.mark = ","),
+  limits = c(0, 1000),
+  breaks = seq(0, 1000, by = 200)
+) + theme_minimal()
+```
+
+2.  Horários e dias com maior atividade
+
+```{r}
+sessoes_limpas |>
+  mutate(
+    hora = format(data_inicio_sessao, "%H"),
+    dia_semana = weekdays(data_inicio_sessao)
+  ) |>
+  filter(!is.na(hora), !is.na(dia_semana)) |>
+  count(hora, dia_semana, name = "quantidade") |>
+  ggplot(
+    aes(
+      x = hora,
+      y = quantidade,
+      color = dia_semana
+    )
+  ) +
+  geom_point(
+    size = 1.25,
+    alpha = 0.8
+  ) +
+  labs(
+    title = "Horários e Dias com Maior Atividade",
+    x = "Hora",
+    y = "Quantidade de Sessões",
+    color = "Dias da Semana"
+  ) + scale_y_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  )
+  theme_minimal()
+```
+
+3.  Evolução dos jogadores durante as sessões
+
+```{r}
+evolucao_jogadores = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
+
+ggplot(
+  evolucao_jogadores,
+  aes(
+    x = duracao_minutos,
+    y = evolucao
+  )
+) + geom_point(
+  size = 1.5,
+  alpha = 0.8,
+  colour = "lightblue"
+) + labs(
+  title = "Evolução dos Jogadores durante as Sessões",
+  x = "Duração (min)",
+  y = "Evolução (nivel_fim - nivel_inicio)"
+) + theme_minimal()
+```
+
+4.  Relação entre duração da sessão e experiência adquirida
+
+```{r}
+
+```
+
+5.  Experiência adquirida por gênero de jogo
+
+```{r}
+ggplot(
+  experiencia_genero,
+  aes(
+    x = genero_jogo,
+    y = experiencia_ganha
+  )
+) + geom_boxplot(
+  fill = "steelblue"
+) + labs(
+  title = "Experiência adquirida por Gênero de Jogo",
+  x = "Gênero de Jogo",
+  y = "Experiência Adquirida"
+) + scale_x_discrete(
+  expand = expansion(add = 1)
+) + theme_minimal()
+```
+
+6.  Itens e categorias mais populares
+
+```{r}
+
+```
+
+7.  Evolução do faturamento ao longo do tempo
+
+```{r}
+
+```
+
+8.  Impacto dos descontos nas compras
+
+```{r}
+
+```
+
+------------------------------------------------------------------------
+
+## Considerações Finais {#considerações-finais}
+
+Este relatório documentou o percurso de preparação dos dados de telemetria gerados para o projeto integrado da equipe 4, em parceria com a MIMA Games & Design LTDA. Os seis conjuntos de dados (compras, itens, itens_compras, jogadores, partidas e sessões) foram importados, inspecionados com `head()`, `names()`, `str()` e `summary()` e investigados quanto a valores ausentes e inconsistências. A exploração confirmou que todos os conjuntos traziam algum tipo de "sujeira", o que justificou a etapa de transformação. Na auditoria de qualidade, optou-se por sinalizar os descontos fora do intervalo entre 0 e 1 com a coluna `desconto_invalido`, em vez de corrigi-los. Essa escolha preserva o dado original, mantém a rastreabilidade da análise e adia a decisão de tratamento, evitando inserir no dataset valores que parecem legítimos, mas são apenas palpites.
+
+A limpeza seguiu uma sequência deliberada. Primeiro, as diferentes representações de ausência ("", "NA" e "NULL") foram padronizadas para `NA`, e os registros duplicados foram removidos com `distinct()`, com a contagem dos removidos em cada conjunto. Depois, os textos e as categorias foram uniformizados a partir de listas de valores válidos (plataformas, gêneros de jogo, resultados, categorias, raridades, países e gêneros), com `padronizar_categoria()`. Valores fora da lista foram preservados e sinalizados, e não descartados em silêncio. As cidades receberam grafia de referência ou formatação em "Título", os números armazenados como texto foram convertidos e os estados foram mapeados para siglas ISO 3166-2 com apoio de um dicionário próprio. O tratamento das datas, que apareciam em formatos ISO, dd/mm/aaaa e mm/dd/aaaa, foi o ponto mais delicado. Para resolver ambiguidades, foram usadas referências internas dos próprios dados: a `duracao_minutos` em sessões e partidas, o intervalo da sessão em compras, a `idade` e os limites de criação de conta em jogadores. Os casos sem referência conclusiva foram tratados como dd/mm, e a contagem desses casos é informada ao final de cada correção.
+
+A etapa de validação conferiu de forma sistemática os resultados da limpeza. Cada regra foi implementada como uma verificação que conta as linhas que a violam e registra o resultado em um painel, em que `falhas = 0` indica que a regra foi respeitada. Foram aplicadas verificações comuns a todas as tabelas (linhas duplicadas, chaves repetidas, ausências em colunas que não deveriam tê-las e textos vazios remanescentes) e verificações específicas de cada conjunto. Em jogadores, checaram-se os valores permitidos, a coerência entre idade e data de nascimento e a ordem entre criação da conta e primeira sessão. Em sessões e partidas, conferiram-se a ordem entre início e fim, a compatibilidade com `duracao_minutos` e o encaixe das partidas no intervalo da sessão. Em compras, verificou-se se cada compra ocorre dentro da sessão, fora de qualquer partida e com ao menos um item. Em itens e itens_compras, validaram-se o catálogo, os preços por raridade, as quantidades, os percentuais de desconto e a consistência entre valor unitário, desconto e valor total. As integridades referenciais entre as tabelas também foram testadas.
+
+O próximo passo é gerar com o `ggplot2` os gráficos da Etapa 6, que apoiarão a interpretação do comportamento dos jogadores. Concluída essa etapa, os dados estarão prontos para alimentar o pipeline de telemetria da MIMA Games.

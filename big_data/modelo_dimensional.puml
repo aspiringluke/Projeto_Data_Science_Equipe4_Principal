@@ -1,0 +1,117 @@
+
+@startuml
+title Modelo Dimensional - Data Warehouse Projeto Data Science
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ArrowColor #555555
+skinparam BorderColor #555555
+skinparam RoundCorner 0
+
+entity "dim_jogador" as DJ {
+  * jogador_key : INTEGER <<PK>>
+  --
+  player_id : INTEGER
+  nome : TEXT
+  username : TEXT
+  idade : INTEGER
+  genero : TEXT
+  cidade : TEXT
+  estado : TEXT
+  pais : TEXT
+  nivel_jogador : INTEGER
+  data_criacao_conta : TEXT
+}
+
+entity "dim_data" as DD {
+  * data_key : INTEGER <<PK>>
+  --
+  data_completa : TEXT
+  ano : INTEGER
+  mes : INTEGER
+  dia : INTEGER
+  trimestre : INTEGER
+}
+
+entity "dim_plataforma" as DP {
+  * plataforma_key : INTEGER <<PK>>
+  --
+  plataforma : TEXT
+}
+
+entity "dim_genero_jogo" as DG {
+  * genero_jogo_key : INTEGER <<PK>>
+  --
+  genero_jogo : TEXT
+}
+
+entity "dim_item" as DI {
+  * item_key : INTEGER <<PK>>
+  --
+  item_id : INTEGER
+  nome_item : TEXT
+  categoria_item : TEXT
+  raridade : TEXT
+  preco_base : REAL
+}
+
+entity "fato_sessoes" as FS {
+  * sessao_id : INTEGER <<PK>>
+  --
+  jogador_key : INTEGER <<FK>>
+  data_key : INTEGER <<FK>>
+  plataforma_key : INTEGER <<FK>>
+  genero_jogo_key : INTEGER <<FK>>
+  data_inicio : TEXT
+  data_fim : TEXT
+  duracao_minutos : REAL
+  nivel_inicio : INTEGER
+  nivel_fim : INTEGER
+}
+
+entity "fato_partidas" as FP {
+  * partida_id : INTEGER <<PK>>
+  --
+  sessao_id : INTEGER <<FK>>
+  jogador_key : INTEGER <<FK>>
+  data_key : INTEGER <<FK>>
+  data_inicio : TEXT
+  data_fim : TEXT
+  duracao_minutos : REAL
+  resultado : TEXT
+  pontuacao : REAL
+  experiencia_ganha : REAL
+}
+
+entity "fato_compras" as FC {
+  * item_compra_id : INTEGER <<PK>>
+  --
+  compra_id : INTEGER
+  sessao_id : INTEGER <<FK>>
+  jogador_key : INTEGER <<FK>>
+  data_key : INTEGER <<FK>>
+  item_key : INTEGER <<FK>>
+  quantidade : INTEGER
+  valor_unitario : REAL
+  desconto : REAL
+  valor_total_item : REAL
+}
+
+DJ ||--o{ FS : jogador_key
+DD ||--o{ FS : data_key
+DP ||--o{ FS : plataforma_key
+DG ||--o{ FS : genero_jogo_key
+
+DJ ||--o{ FP : jogador_key
+DD ||--o{ FP : data_key
+FS ||--o{ FP : sessao_id
+
+DJ ||--o{ FC : jogador_key
+DD ||--o{ FC : data_key
+DI ||--o{ FC : item_key
+FS ||--o{ FC : sessao_id
+
+@enduml

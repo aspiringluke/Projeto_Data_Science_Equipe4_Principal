@@ -1,0 +1,38 @@
+"item_id","nome_item","categoria_item","raridade","preco_base"
+1,"Skin Dragão","Skin","Comum",4.9
+2,"Skin Tempestade","Skin","Incomum",19.9
+3,"Skin Neon","Skin","Incomum",9.9
+4,"Skin Sombria","Skin","Épica",29.9
+5,"Skin Vulcânica","Skin","Rara",24.9
+6,"Skin Glacial","Skin","Comum",4.9
+7,"Passe de Batalha Bronze","Passe de batalha","Rara",29.9
+8,"Passe de Batalha Prata","Passe de batalha","Rara",24.9
+9,"Passe de Batalha Ouro","Passe de batalha","Rara",29.9
+10,"100 Moedas","Moeda virtual","Lendária",49.9
+11,"500 Moedas","Moeda virtual","Comum",9.9
+12,"1000 Moedas","Moeda virtual","Comum",4.9
+13,"2500 Moedas","Moeda virtual","Épica",39.9
+14,"Personagem Guerreiro","Personagem","Lendária",59.9
+15,"Personagem Mago","Personagem","Incomum",19.9
+16,"Personagem Caçador","Personagem","Épica",39.9
+17,"Personagem Assassino","Personagem","Comum",9.9
+18,"Roupa Especial","Cosmético","Comum",4.9
+19,"Capacete Especial","Cosmético","Incomum",9.9
+20,"Efeito Visual","Cosmético","Rara",19.9
+21,"Pintura Especial","Cosmético","Épica",49.9
+22,"Expansão Norte","DLC","Rara",29.9
+23,"Expansão Sombria","DLC","Comum",4.9
+24,"Expansão Final","DLC","Épica",29.9
+25,"Boost de XP","Boost","Épica",29.9
+26,"Boost de Moedas","Boost","Comum",4.9
+27,"Boost de Progressão","Boost","Rara",29.9
+28,"Pacote Inicial","Pacote","Comum",9.9
+29,"Pacote Premium","Pacote","Épica",29.9
+30,"Pacote Lendário","Pacote","Comum",9.9
+31,"Emote Dança","Emote","Rara",19.9
+32,"Emote Vitória","Emote","Comum",9.9
+33,"Emote Provocação","Emote","Incomum",19.9
+34,"Mochila Especial","Acessório","Incomum",9.9
+35,"Pingente","Acessório","Comum",4.9
+36,"Bandeira","Acessório","Comum",4.9
+37,"Insígnia","Acessório","Comum",4.9
