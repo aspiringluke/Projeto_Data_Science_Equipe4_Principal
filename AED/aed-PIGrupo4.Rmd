@@ -68,7 +68,7 @@ library(here)
 base_repo = here()
 
 # 2. Verificar pasta
-pasta_dados = file.path(base_repo, "gerador", "gerador", "output", "sujos")
+pasta_dados = file.path(base_repo, "etl", "output", "sujos")
 
 if (!dir.exists(pasta_dados)){
   stop("A pasta não existe: ", pasta_dados)
@@ -2367,6 +2367,7 @@ itens_compras_limpos |>
 1.  Duração das sessões por plataforma
 
 ```{r Gráfico — Duração das sessões por plataforma}
+
 sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
 
 ggplot(
@@ -2375,21 +2376,26 @@ ggplot(
     x = plataforma,
     y = duracao_minutos
   )
-) + geom_col(
+) + stat_summary(
+  fun = mean,
+  geom = "col",
   fill = "lightblue"
 ) + labs(
   title = "Duração das Sessões por Plataforma",
   x = "Plataforma",
   y = "Duração (min)"
 ) + scale_y_continuous(
-  labels = scales::label_number(big.mark = ".", decimal.mark = ","),
-  limits = c(0, 1000),
-  breaks = seq(0, 1000, by = 200)
+  labels = scales::label_number(big.mark = ".", decimal.mark = ",")
 ) + theme_minimal()
 ```
 
 2.  Horários e dias com maior atividade
 
+Esse gráfico permite analisar os períodos de tempo com maior atividade dos jogadores. Os resultados são filtrados
+pelo dia da semana permitindo verificar em quais dias da semana tem mais e menos atividade dos usuários.
+
+Os resultados gerados sugerem que a maioria dos jogadores estão passando mais tempo jogando no período noturno
+e no final do período da tarde
 ```{r Gráfico — Horários e dias com maior atividade}
 sessoes_limpas |>
   mutate(
@@ -2438,7 +2444,7 @@ ggplot(
 ) + labs(
   title = "Evolução dos Jogadores durante as Sessões",
   x = "Duração (min)",
-  y = "Evolução (nivel_fim - nivel_inicio)"
+  y = "Evolução"
 ) + theme_minimal()
 ```
 
@@ -2496,6 +2502,10 @@ ggplot(
   title = "Itens mais populares por categoria",
   x = "Categoria",
   y = "Quantidade de Itens Comprados"
+) + geom_hline(
+  yintercept = mean(itens_populares$quantidade_total),
+  color = "steelblue",
+  linetype = "dashed"
 ) + theme_minimal() + theme(
   axis.text.x = element_text(angle = 90)
 )
