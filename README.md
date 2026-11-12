@@ -56,12 +56,6 @@ O relatório de [Análise Exploratória de Dados (AED)](AED/aed-PIGrupo4.Rmd) do
 
 Na etapa de transformação, o relatório padroniza os valores ausentes, remove registros duplicados, uniformiza textos e categorias a partir de listas de valores válidos, converte números armazenados como texto e corrige datas registradas em formatos distintos (ISO, dd/mm/aaaa e mm/dd/aaaa), usando referências internas dos próprios dados para resolver ambiguidades. Também mapeia os estados dos jogadores para siglas ISO 3166-2. As etapas de validação dos dados tratados e de geração de gráficos com `ggplot2` ainda estão em desenvolvimento.
 ## 🗄️ Big Data
-A etapa de **Big Data** é responsável pelo armazenamento, processamento e análise dos dados sintéticos de telemetria de jogos digitais. Para isso, utilizamos um **Data Lake** para organizar os dados brutos e tratados, um **Data Warehouse** com modelagem dimensional para facilitar consultas analíticas, **Apache Hadoop** para demonstrar armazenamento e processamento com HDFS e MapReduce, e **Apache Spark** para análises e simulação de processamento em lotes. Também aplicamos técnicas de **Machine Learning** para previsão e identificação de perfis de jogadores, além de análises **OLAP** para explorar os dados por diferentes perspectivas.
-
-O objetivo é transformar os registros de jogadores, sessões, partidas e compras em indicadores úteis para compreender o comportamento dos usuários e apoiar a tomada de decisões. A integração completa com a pipeline automatizada ainda está em desenvolvimento.
-
- **Documentação completa, notebooks e resultados:** [Big Data](https://github.com/aspiringluke/Projeto_Data_Science_Equipe4_Principal/blob/big-data/big_data/README.md)
-
 
 ## 📊 Probabilidade e Estatística
 
