@@ -88,12 +88,12 @@ encontrar_csv = function(pasta, padrao){
 
 # 4. Padrões e importação
 padroes = c(
-  compras       = "^[0-9]*-[0-9]*-compras_[0-9]{8}_.*\\.csv$",
-  itens         = "^[0-9]*-[0-9]*-itens_[0-9]{8}_.*\\.csv$",
-  itens_compras = "^[0-9]*-[0-9]*-itens_compra_[0-9]{8}_.*\\.csv$",
-  jogadores     = "^[0-9]*-[0-9]*-jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
-  partidas      = "^[0-9]*-[0-9]*-partidas_[0-9]{8}_.*\\.csv$",
-  sessoes       = "^[0-9]*-[0-9]*-sessoes_[0-9]{8}_.*\\.csv$"
+  compras       = "^[0-9]*-compras_[0-9]{8}_.*\\.csv$",
+  itens         = "^[0-9]*-itens_[0-9]{8}_.*\\.csv$",
+  itens_compras = "^[0-9]*-itens_compra_[0-9]{8}_.*\\.csv$",
+  jogadores     = "^[0-9]*-jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
+  partidas      = "^[0-9]*-partidas_[0-9]{8}_.*\\.csv$",
+  sessoes       = "^[0-9]*-sessoes_[0-9]{8}_.*\\.csv$"
 )
 
 for (nome in names(padroes)){
@@ -1813,120 +1813,6 @@ cat('\n')
 
 cat('Sessões limpas:\n')
 names(sessoes_limpas)
-
-
-# Média (duracao_sessao)
-media_duracao_sessao = mean(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-max_duracao_sessao = max(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-min_duracao_sessao = min(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-
-cat('Maior Duração de Sessão:\n')
-round(max_duracao_sessao, 2)
-cat('\n')
-
-cat('Menor Duração de Sessão:\n')
-round(min_duracao_sessao, 2)
-cat('\n')
-
-cat('Média de Duração das Sessões:\n')
-round(media_duracao_sessao, 2)
-cat('\n')
-
-# Mediana
-mediana_duracao_sessao = median(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-
-cat('Mediana de Duração das Sessões:\n')
-round(mediana_duracao_sessao, 2)
-cat('\n')
-
-# Moda
-sessoes_limpas |> count(duracao_minutos, sort = TRUE)
-
-# Amplitude
-cat('Amplitude Duração das Sessões:\n')
-amplitude_duracao_sessao = max_duracao_sessao - min_duracao_sessao
-amplitude_duracao_sessao
-cat('\n')
-
-# Variância
-variancia_duracao_sessao = var(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-
-# Desvio Padrão
-cat('Desvio Padrão Duração das Sessões:\n')
-dp_duracao_sessao = sqrt(variancia_duracao_sessao)
-round(dp_duracao_sessao, 2)
-cat('\n')
-
-# Quartis
-cat('Quartis Duração das Sessões:\n')
-quantile(sessoes_limpas$duracao_minutos,
-         probs = c(0.25, 0.50, 0.75),
-         na.rm = TRUE)
-cat('\n')
-
-# Intervalo Inter-quartil
-cat('Intervalo Inter-Quartil:\n')
-IQR(sessoes_limpas$duracao_minutos, na.rm = TRUE)
-cat('\n')
-
-# Calcular Outliers
-q1 = quantile(sessoes_limpas$duracao_minutos, 0.25, na.rm = TRUE)
-q3 = quantile(sessoes_limpas$duracao_minutos, 0.75, na.rm = TRUE)
-
-aiq = q3 - q1
-
-cat('Limites Duração das Sessões:\n')
-limite_inferior_duracao = q1 - 1.5 * aiq
-limite_superior_duracao = q3 + 1.5 * aiq
-
-cat(round(limite_inferior_duracao, 2),
-    "———",
-    round(limite_superior_duracao, 2))
-cat('\n')
-
-# Identificar Valores Atípicos
-sessoes_limpas |> filter(
-  duracao_minutos < limite_inferior_duracao |
-    duracao_minutos > limite_superior_duracao
-) |> select(sessao_id, player_id, duracao_minutos, plataforma) |>
-  arrange(duracao_minutos)
-```
-
-```{r Análise de Valores com Estatística Descritiva - Horários e dias com maior atividade}
-# Horários com maior atividade
-cat('Horários com maior atividade:\n')
-
-sessoes_limpas |>
-  mutate(hora = format(data_inicio_sessao, "%H")) |>
-  count(hora, sort = TRUE)
-
-cat('\n')
-
-# Dias da semana com maior atividade
-cat('Dias da semana com maior atividade:\n')
-
-sessoes_limpas |>
-  mutate(dia_semana = weekdays(data_inicio_sessao)) |>
-  count(dia_semana, sort = TRUE)
-
-cat('\n')
-
-# Atividade por dia e horário
-cat('Atividade por dia e horário:\n')
-
-sessoes_limpas |>
-  mutate(
-    hora = format(data_inicio_sessao, "%H"),
-    dia_semana = weekdays(data_inicio_sessao)
-  ) |>
-  count(dia_semana, hora, sort = TRUE)
-
-```
-
-```{r Análise de Valores com Estatística Descritiva - Evolução dos jogadores durante as sessões}
-# Criar variável de evolução
-evolucao_jogadores = sessoes_limpas |>
-  mutate(evolucao = nivel_fim - nivel_inicio)
 
 
 # Média (duracao_sessao)
