@@ -56,10 +56,6 @@
         - pipeline.py
         - etl-script.R
         - import-libraries.R
-    
-    - name: Importar bibliotecas R
-      ansible.builtin.command:
-        cmd: Rscript /opt/projeto/etl/import-libraries.R
 
     - name: Criar arquivo de configuracao /etc/rsyncd.conf
       ansible.builtin.copy:
@@ -105,6 +101,13 @@
 
           [Install]
           WantedBy=multi-user.target
+
+    - name: Importar bibliotecas R
+      become: true
+      become_user: aluno
+      become_flags: "-i"
+      ansible.builtin.command:
+        cmd: Rscript /opt/projeto/etl/import-libraries.R
 
     - name: Recarregar daemon do systemd e ativar o servico
       ansible.builtin.systemd:
