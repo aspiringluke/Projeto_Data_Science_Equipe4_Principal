@@ -2368,10 +2368,10 @@ itens_compras_limpos |>
 
 ```{r Gráfico — Duração das sessões por plataforma}
 
-sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
+sessoes_plot = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
 
 ggplot(
-  sessoes_limpas,
+  sessoes_plot,
   aes(
     x = plataforma,
     y = duracao_minutos
@@ -2422,17 +2422,16 @@ sessoes_limpas |>
     color = "Dias da Semana"
   ) + scale_y_continuous(
     labels = scales::label_number(big.mark = ".", decimal.mark = ",")
-  )
-  theme_minimal()
+  ) + theme_minimal()
 ```
 
 3.  Evolução dos jogadores durante as sessões
 
 ```{r Gráfico — Evolução dos jogadores durante as sessões}
-evolucao_jogadores = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
+evolucao_plot = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
 
 ggplot(
-  evolucao_jogadores,
+  evolucao_plot,
   aes(
     x = duracao_minutos,
     y = evolucao
@@ -2451,7 +2450,38 @@ ggplot(
 4.  Relação entre duração da sessão e experiência adquirida
 
 ```{r Gráfico — Relação entre a duração da sessão e experiência adquirida}
+experiencia_faixa = experiencia_sessoes |>
+  mutate(
+    faixa_tempo = cut(
+      duracao_minutos,
+      breaks = c(0, 30, 50, 100),
+      include.lowest = TRUE,
+    )
+  ) |>
+  group_by(faixa_tempo) |>
+  summarise(
+    experiencia_ganha = mean(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |> filter(!is.na(faixa_tempo), !is.na(experiencia_ganha))
 
+ggplot(
+  experiencia_faixa,
+  aes(
+    x = faixa_tempo,
+    y = experiencia_ganha
+  )
+) +
+  geom_col(
+    fill = "steelblue",
+  ) +
+  labs(
+    title = "Relação entre duração da sessão e experiência adquirida",
+    x = "Intervalo de Tempo (min)",
+    y = "Experiência Adquirida"
+  ) +
+  theme_minimal()
 ```
 
 5.  Experiência adquirida por gênero de jogo
@@ -2473,8 +2503,6 @@ ggplot(
   expand = expansion(add = 1)
 ) + theme_minimal() + theme(
   axis.text.x = element_text(angle = 90)
-) + theme(
-  axis.text.x = element_text(angle = 90)
 )
 ```
 
@@ -2484,14 +2512,16 @@ ggplot(
 itens_populares = itens_compras_limpos |>
   left_join(
     itens_limpos |>
-      select(item_id, categoria_item),
+      select(item_id, nome_item, categoria_item),
     by = "item_id"
   ) |>
   group_by(categoria_item) |>
   summarise(
-    quantidade_total = sum(quantidade, na.rm = TRUE)
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
   )
-
 ggplot(
   itens_populares,
   aes(
@@ -2514,13 +2544,92 @@ ggplot(
 7.  Evolução do faturamento ao longo do tempo
 
 ```{r Gráfico — Evolução do faturamento ao longo do tempo}
+faturamento = itens_compras_limpos |>
+  left_join(
+    compras_limpas |>
+      select(compra_id, data_compra),
+    by = "compra_id"
+  )
 
+faturamento_mensal = faturamento |>
+  group_by(mes = month(data_compra)) |>
+  summarise(
+    faturamento = sum(valor_total_item, na.rm = TRUE)
+  )
+
+ggplot(
+  faturamento_mensal,
+  aes(
+    x = mes,
+    y = faturamento
+  )
+) +
+  geom_area(
+    fill = "darkgreen",
+    alpha = 0.8,
+    colour = "black",
+    lwd = 0.8,
+    linetype = "longdash",
+    na.rm = TRUE
+  ) +
+  scale_x_continuous(
+    breaks = 1:12,
+    labels = c(
+      "Janeiro", "Fevereiro", "Março",
+      "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro",
+      "Outubro", "Novembro", "Dezembro"
+    ),
+  ) + scale_y_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  ) + labs(
+    title = "Evolução do Faturamento ao Longo do Tempo",
+    x = "Meses do Ano",
+    y = "Faturamento(R$)"
+  ) +
+  theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
 8.  Impacto dos descontos nas compras
 
 ```{r Gráfico — Impacto dos descontos nas compras}
+desconto_categoria = itens_compras_limpos |>
+  left_join(
+    itens_limpos |> select(item_id, categoria_item),
+    by = "item_id"
+  ) |>
+  mutate(
+    tipo_preco = if_else(
+      desconto > 0 & !desconto_invalido,
+      "Com Desconto",
+      "Preço Normal"
+    )
+  ) |>
+  group_by(categoria_item, tipo_preco) |>
+  summarise(
+    faturamento_medio = mean(valor_total_item, na.rm = TRUE),
+    .groups = "drop"
+  )
 
+ggplot(
+  desconto_categoria,
+  aes(
+    x = categoria_item, 
+    y = faturamento_medio, 
+    fill = tipo_preco)
+) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Impacto dos descontos nas compras",
+    x = "Categoria",
+    y = "Faturamento Médio",
+    fill = "Tipo de Preço"
+  ) +
+  theme_minimal() + theme(
+    axis.text.x = element_text(angle = 90)
+  )
 ```
 
 ------------------------------------------------------------------------
