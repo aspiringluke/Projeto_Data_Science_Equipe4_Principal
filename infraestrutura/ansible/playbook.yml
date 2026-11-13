@@ -3,6 +3,14 @@
   hosts: maquinas
   become: true
   tasks:
+    - name: Impedir instalação de manuais do dpkg
+      ansible.builtin.copy:
+        dest: "/etc/dpkg/dpkg.cfg.d/01_noconf"
+        content: |
+          path-exclude /usr/share/doc/*
+          path-exclude /usr/share/man/*
+          path-exclude /usr/share/info/*
+
     - name: Instalar pacotes necessários
       ansible.builtin.apt:
         name: rsync
@@ -22,6 +30,8 @@
         state: present
         update_cache: yes
         cache_valid_time: 3600
+        install_recommends: false
+        dpkg_options: "force-confdef,force-confold,force-unsafe-io"
 
     - name: Habilitar e iniciar servico rsync
       ansible.builtin.systemd:
