@@ -6,7 +6,7 @@ output:
 
 # Projeto Integrado — Telemetria de Jogos Digitais
 
-## 👥 Integrantes do grupo 4:
+## Integrantes do grupo 4:
 
 - Gabriel da Silva Freitas
 - José Carlos Pereira Neto
@@ -17,41 +17,60 @@ output:
 
 ------------------------------------------------------------------------
 
-## 🔍 Análise Exploratória de Dados
+## Análise Exploratória de Dados
 
-Esse documento tem como principal objetivo relatar os passos tomados para ler, analisar, processar e visualizar o dataset gerado para o projeto integrado da equipe 4 sobre pipeline de dados de telemetria de jogos digitais em parceria com a **MIMA Games & Design LTDA**.
+Esse documento tem como principal objetivo relatar os passos tomados
+para ler, analisar, processar e visualizar o dataset gerado para o
+projeto integrado da equipe 4 sobre pipeline de dados de telemetria de
+jogos digitais em parceria com a **MIMA Games & Design LTDA**.
 
 ------------------------------------------------------------------------
 
-## 📚 Sumário
+## Sumário
 
 - [Etapa 1 - Importação do Dataset](#etapa-1---importação-do-dataset)
 - [Etapa 2 - Análise Inicial](#etapa-2---análise-inicial)
-- [Etapa 3 - Investigando Dados Sujos](#etapa-3---investigando-dados-sujos)
-- [Etapa 4 - Transformação dos dados sujos](#etapa-4---transformação-dos-dados-sujos)
+- [Etapa 3 - Investigando Dados
+  Sujos](#etapa-3---investigando-dados-sujos)
+- [Etapa 4 - Transformação dos dados
+  sujos](#etapa-4---transformação-dos-dados-sujos)
 - [Etapa 5 - Validação](#etapa-5---validação)
 - [Etapa 6 - Geração dos gráficos](#etapa-6---geração-dos-gráficos)
 - [Considerações Finais](#considerações-finais)
 
 ------------------------------------------------------------------------
 
-## Etapa 1 - Importação do Dataset {#etapa-1---importação-do-dataset}
+## Etapa 1 - Importação do Dataset
 
-À princípio, importamos cada arquivo .csv gerado pelo simulador de dados presente no repositório do gerador no GitHub encontrado em: `https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git` Os dados presentes em cada dataset possuem algum tipo de 'sujeira' que será processada e transformada na etapa 4 dessa análise
+Inicialmente, importamos cada arquivo .csv gerado pelo simulador de
+dados, disponível no repositório do gerador no GitHub:
+`https://github.com/luisvitor-unifeob/Gerador_de_Dados_Equipe4.git`. Os
+datasets contêm “sujeiras” (inconsistências, formatos irregulares,
+valores ausentes ou duplicados) que serão tratadas na etapa 4 desta
+análise.
 
-Será instalado e carregado o pacote `dplyr` que nos permitirá acessar funções de seleção, filtros, agrupamentos e ordenações
+Para isso, serão instalados e carregados os seguintes pacotes:
 
-Além disso, será instalado e carregado o pacote 'lubridate' que nos permitirá fazer manipulações de datas de forma simples e mais intuitiva. Já as bibliotecas 'stringr' e 'stringi' serão utilizadas para padrinização de textos
-
-A biblioteca `ggplot2` será utilizada para geração de gráficos que permitem a visualização e interpretação dos dados por meio de diferentes tipos de gráficos, como gráficos de barras, linhas, dispersão e histogramas, etc.
+- **dplyr**: seleção, filtragem, criação de variáveis, agrupamento e
+  ordenação dos dados.
+- **lubridate**: conversão e manipulação de datas, essencial para
+  padronizar as colunas temporais.
+- **stringr** e **stringi**: padronização de textos, como remoção de
+  espaços extras, ajuste de caixa e remoção de acentos.
+- **ggplot2**: geração de gráficos (barras, linhas, dispersão,
+  histogramas) para visualização e interpretação dos dados.
+- **here**: a função here() monta os caminhos dos arquivos a partir da
+  raiz do projeto, dispensando caminhos absolutos e a utilização de
+  `setwd()`. Assim, o script funciona em qualquer computador, o que
+  facilita o trabalho em equipe e a reprodutibilidade.
 
 ```{r Etapa 1 - Importação do Dataset}
- install.packages("dplyr")
- install.packages("lubridate")
- install.packages("stringr")
- install.packages("stringi")
- install.packages("ggplot2")
- install.packages("here")
+ # # install.packages("dplyr")
+ # # install.packages("lubridate")
+ # # install.packages("stringr")
+ # # install.packages("stringi")
+ # # install.packages("ggplot2")
+ # # install.packages("here")
 
 
 library(dplyr)
@@ -66,7 +85,7 @@ library(here)
 base_repo = here()
 
 # 2. Verificar pasta
-pasta_dados = file.path(base_repo, "gerador", "gerador", "output", "sujos")
+pasta_dados = file.path(base_repo, "etl", "output", "sujos")
 
 if (!dir.exists(pasta_dados)){
   stop("A pasta não existe: ", pasta_dados)
@@ -108,15 +127,29 @@ for (nome in names(padroes)){
 
 ------------------------------------------------------------------------
 
-## Etapa 2 - Análise Inicial {#etapa-2---análise-inicial}
+## Etapa 2 - Análise Inicial
 
-À princípio, a função `head()` permite observar as seis primeiras linhas de cada DataFrame, possibilitando uma compreensão inicial dos dados e das variáveis presentes em cada conjunto.
+À princípio, a função `head()` permite observar as seis primeiras linhas
+de cada DataFrame, possibilitando uma compreensão inicial dos dados e
+das variáveis presentes em cada conjunto.
 
-Em seguida, a função `names()` é utilizada para identificar os nomes das colunas de cada DataFrame, facilitando o reconhecimento das variáveis disponíveis e auxiliando na compreensão da organização dos dados.
+Em seguida, a função `names()` é utilizada para identificar os nomes das
+colunas de cada DataFrame, facilitando o reconhecimento das variáveis
+disponíveis e auxiliando na compreensão da organização dos dados.
 
-Posteriormente, a função `str()` permite examinar a estrutura de cada conjunto de dados, apresentando a quantidade de observações, as variáveis existentes e seus respectivos tipos, como numéricos, caracteres ou inteiros.
+Posteriormente, a função `str()` permite examinar a estrutura de cada
+conjunto de dados, apresentando a quantidade de observações, as
+variáveis existentes e seus respectivos tipos, como numéricos,
+caracteres ou inteiros.
 
-Por fim, a função `summary()` fornece um resumo estatístico das variáveis, incluindo medidas como mínimo, máximo, mediana, média e quartis para variáveis numéricas, além de informações sobre a frequência de valores para variáveis categóricas. Dessa forma, essas funções contribuem para uma exploração inicial dos datasets, permitindo identificar características relevantes, compreender a estrutura dos dados e obter uma visão geral que servirá de base para as próximas etapas da análise.
+Por fim, a função `summary()` fornece um resumo estatístico das
+variáveis, incluindo medidas como mínimo, máximo, mediana, média e
+quartis para variáveis numéricas, além de informações sobre a frequência
+de valores para variáveis categóricas. Dessa forma, essas funções
+contribuem para uma exploração inicial dos datasets, permitindo
+identificar características relevantes, compreender a estrutura dos
+dados e obter uma visão geral que servirá de base para as próximas
+etapas da análise.
 
 ```{r Etapa 2 - Análise Inicial : head()}
 # head
@@ -208,7 +241,7 @@ summary(sessoes)
 
 ------------------------------------------------------------------------
 
-## Etapa 3 - Investigando Dados Sujos {#etapa-3---investigando-dados-sujos}
+## Etapa 3 - Investigando Dados Sujos
 
 Serão contabilizados a quantidade de observações vazias em cada dataset
 
@@ -254,9 +287,16 @@ media_vazios
 
 É possível observar as seguintes situações:
 
-- O dataset com o maior número de valores ausentes é aquele que concentra a maior quantidade de campos vazios, o que indica onde a limpeza será mais trabalhosa
-- O dataset com o menor número de valores ausentes é aquele que concentra a menor quantidade de campos vazios, podendo inclusive não ter nenhum, caso todos os campos tenham algum valor registrado
-- A média geral de valores ausentes serve como ponto de referência: datasets acima dela têm mais vazios do que o típico, e datasets abaixo têm menos, o que ajuda a priorizar quais merecem mais atenção na limpeza
+- O dataset com o maior número de valores ausentes é aquele que
+  concentra a maior quantidade de campos vazios, o que indica onde a
+  limpeza será mais trabalhosa
+- O dataset com o menor número de valores ausentes é aquele que
+  concentra a menor quantidade de campos vazios, podendo inclusive não
+  ter nenhum, caso todos os campos tenham algum valor registrado
+- A média geral de valores ausentes serve como ponto de referência:
+  datasets acima dela têm mais vazios do que o típico, e datasets abaixo
+  têm menos, o que ajuda a priorizar quais merecem mais atenção na
+  limpeza
 
 Serão contabilizados a quantidade de observações NA em cada dataset
 
@@ -285,19 +325,52 @@ cat("Valores NA — Sessões:\n")
 sum(is.na(sessoes))
 ```
 
-Este trecho faz parte de uma etapa de auditoria de qualidade dos dados. Ele procura valores de desconto que não fazem sentido na tabela `itens_compras` e os sinaliza, sem alterar nada. A regra de negócio é que o desconto está representado como uma proporção entre 0 e 1, em que 0 significa sem desconto e 1 significa 100% de desconto. Qualquer valor fora desse intervalo é inválido: um desconto negativo equivaleria a um acréscimo no preço, e um desconto acima de 1 significaria pagar menos do que zero.
+Este trecho faz parte de uma etapa de auditoria de qualidade dos dados.
+Ele procura valores de desconto que não fazem sentido na tabela
+`itens_compras` e os sinaliza, sem alterar nada. A regra de negócio é
+que o desconto está representado como uma proporção entre 0 e 1, em que
+0 significa sem desconto e 1 significa 100% de desconto. Qualquer valor
+fora desse intervalo é inválido: um desconto negativo equivaleria a um
+acréscimo no preço, e um desconto acima de 1 significaria pagar menos do
+que zero.
 
-Para isso, o código segue três passos. Primeiro, o `filter` lista as linhas com desconto menor que 0 ou maior que 1, apenas para que você visualize os problemas, já que o resultado não é salvo. Depois, o `mutate` cria a coluna `desconto_invalido`, que recebe `TRUE` quando o desconto está fora do intervalo e `FALSE` caso contrário, mantendo intactos os valores originais de `desconto`. Por fim, o `View` permite conferir se a coluna foi criada corretamente, e o `sum` conta quantos registros são inválidos, já que o R trata `TRUE` como 1 e `FALSE` como 0.
+Para isso, o código segue três passos. Primeiro, o `filter` lista as
+linhas com desconto menor que 0 ou maior que 1, apenas para que você
+visualize os problemas, já que o resultado não é salvo. Depois, o
+`mutate` cria a coluna `desconto_invalido`, que recebe `TRUE` quando o
+desconto está fora do intervalo e `FALSE` caso contrário, mantendo
+intactos os valores originais de `desconto`. Por fim, o `View` permite
+conferir se a coluna foi criada corretamente, e o `sum` conta quantos
+registros são inválidos, já que o R trata `TRUE` como 1 e `FALSE` como
+0.
 
-Antes de limpar ou transformar os dados, é preciso dimensionar o problema: quantas observações estão sujas, onde estão e se o volume sugere um erro isolado de digitação ou uma falha sistemática na origem. Este código responde a essas perguntas de forma rápida e rastreável.
+Antes de limpar ou transformar os dados, é preciso dimensionar o
+problema: quantas observações estão sujas, onde estão e se o volume
+sugere um erro isolado de digitação ou uma falha sistemática na origem.
+Este código responde a essas perguntas de forma rápida e rastreável.
 
 ## Observação importante
 
-Corrigir o valor na hora pode parecer mais prático, mas marcar é mais seguro por vários motivos. Em primeiro lugar, não sabemos qual é o valor correto: um desconto de, por exemplo, `15` pode ser `0.15` (erro de escala), `1.5` (erro de digitação) ou simplesmente lixo, e substituí-lo por um palpite insere informação falsa no dataset, o que é pior do que o dado sujo, pois o erro passa a parecer legítimo.
+Corrigir o valor na hora pode parecer mais prático, mas marcar é mais
+seguro por vários motivos. Em primeiro lugar, não sabemos qual é o valor
+correto: um desconto de, por exemplo, `15` pode ser `0.15` (erro de
+escala), `1.5` (erro de digitação) ou simplesmente lixo, e substituí-lo
+por um palpite insere informação falsa no dataset, o que é pior do que o
+dado sujo, pois o erro passa a parecer legítimo.
 
-Além disso, sobrescrever o valor destrói a informação original e impede investigar a causa ou corrigir o problema na fonte. A flag preserva o dado e mantém a rastreabilidade e a reprodutibilidade da análise, pois quem a ler depois consegue ver exatamente quais linhas foram consideradas problemáticas e por quê.
+Além disso, sobrescrever o valor destrói a informação original e impede
+investigar a causa ou corrigir o problema na fonte. A flag preserva o
+dado e mantém a rastreabilidade e a reprodutibilidade da análise, pois
+quem a ler depois consegue ver exatamente quais linhas foram
+consideradas problemáticas e por quê.
 
-Marcar também adia a decisão de tratamento. Com as linhas sinalizadas, você pode escolher depois entre excluir, converter para `NA`, imputar ou corrigir por regra de negócio, comparando o impacto de cada estratégia sem refazer a detecção. E como alterações sem registro podem distorcer médias e totais sem que ninguém perceba, a flag evita esse viés silencioso, além de permitir filtrar facilmente os dados válidos ou os problemáticos.
+Marcar também adia a decisão de tratamento. Com as linhas sinalizadas,
+você pode escolher depois entre excluir, converter para `NA`, imputar ou
+corrigir por regra de negócio, comparando o impacto de cada estratégia
+sem refazer a detecção. E como alterações sem registro podem distorcer
+médias e totais sem que ninguém perceba, a flag evita esse viés
+silencioso, além de permitir filtrar facilmente os dados válidos ou os
+problemáticos.
 
 ```{r Etapa 3 - Investigando Dados Sujos : Descontos Inválidos}
 
@@ -320,15 +393,24 @@ sum(itens_compras$desconto_invalido, na.rm = TRUE)
 
 ------------------------------------------------------------------------
 
-## Etapa 4 - Transformação dos Dados Sujos {#etapa-4---transformação-dos-dados-sujos}
+## Etapa 4 - Transformação dos Dados Sujos
 
 ### 1. Padronização de valores ausentes
 
-Nesta etapa, foi criada a função `limpa_nulos()`, responsável por padronizar as diferentes representações de valores ausentes encontradas nos datasets. Os valores representados por strings vazias (""), "NA" e "NULL" são substituídos pelo valor especial NA do R, que indica a ausência de um dado.
+Nesta etapa, foi criada a função `limpa_nulos()`, responsável por
+padronizar as diferentes representações de valores ausentes encontradas
+nos datasets. Os valores representados por strings vazias (""), "NA" e
+"NULL" são substituídos pelo valor especial NA do R, que indica a
+ausência de um dado.
 
-A função utiliza `lapply()` para percorrer as colunas do dataset e aplicar a substituição em cada uma delas, enquanto **df[]** permite atualizar as colunas sem alterar a estrutura original do data frame.
+A função utiliza `lapply()` para percorrer as colunas do dataset e
+aplicar a substituição em cada uma delas, enquanto **df[]** permite
+atualizar as colunas sem alterar a estrutura original do data frame.
 
-Essa padronização facilita as etapas seguintes de limpeza e análise, pois permite tratar os valores ausentes de maneira consistente. Por isso, a função é executada antes das demais transformações em todos os datasets utilizados.
+Essa padronização facilita as etapas seguintes de limpeza e análise,
+pois permite tratar os valores ausentes de maneira consistente. Por
+isso, a função é executada antes das demais transformações em todos os
+datasets utilizados.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Padronização de Valores Ausentes}
 limpa_nulos = function(df) {
@@ -351,19 +433,35 @@ sessoes_nulos       = limpa_nulos(sessoes)
 
 ### 2. Remoção de registros duplicados & Contabilização dos registros duplicados removido
 
-Após a padronização dos valores ausentes, foi utilizada a função `distinct()`, do pacote **dplyr**, para remover registros duplicados de cada dataset.
+Após a padronização dos valores ausentes, foi utilizada a função
+`distinct()`, do pacote **dplyr**, para remover registros duplicados de
+cada dataset.
 
-Por padrão, `distinct()` considera todas as colunas para identificar registros repetidos, mantendo apenas uma ocorrência de cada combinação de valores. Dessa forma, os datasets passam a conter apenas registros distintos, reduzindo redundâncias que poderiam interferir nas análises posteriores.
+Por padrão, `distinct()` considera todas as colunas para identificar
+registros repetidos, mantendo apenas uma ocorrência de cada combinação
+de valores. Dessa forma, os datasets passam a conter apenas registros
+distintos, reduzindo redundâncias que poderiam interferir nas análises
+posteriores.
 
-Os resultados são armazenados em novos objetos com o sufixo \*\_limpos\*, preservando os datasets originais e as versões intermediárias geradas na etapa anterior.
+Os resultados são armazenados em novos objetos com o sufixo
+\*\_limpos\*, preservando os datasets originais e as versões
+intermediárias geradas na etapa anterior.
 
 ------------------------------------------------------------------------
 
-Para avaliar o impacto da limpeza, foi calculada a quantidade de registros removidos de cada dataset. Para isso, a função `nrow()` obtém o número de linhas de cada dataset, e a diferença entre a quantidade original de linhas e a quantidade de linhas após a remoção das duplicatas indica quantos registros foram eliminados.
+Para avaliar o impacto da limpeza, foi calculada a quantidade de
+registros removidos de cada dataset. Para isso, a função `nrow()` obtém
+o número de linhas de cada dataset, e a diferença entre a quantidade
+original de linhas e a quantidade de linhas após a remoção das
+duplicatas indica quantos registros foram eliminados.
 
-A função `cat()` exibe uma mensagem identificando o resultado, enquanto `print()` apresenta as quantidades calculadas em um vetor nomeado, facilitando a comparação entre os datasets.
+A função `cat()` exibe uma mensagem identificando o resultado, enquanto
+`print()` apresenta as quantidades calculadas em um vetor nomeado,
+facilitando a comparação entre os datasets.
 
-Essa verificação permite avaliar o volume de duplicidades encontrado em cada conjunto de dados e documentar os resultados da transformação realizada.
+Essa verificação permite avaliar o volume de duplicidades encontrado em
+cada conjunto de dados e documentar os resultados da transformação
+realizada.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos: Remoção de Registros Duplicados & Contabilização dos registros duplicados removido}
 compras_limpas       = compras_nulos       %>% distinct()
@@ -384,15 +482,38 @@ print(c(compras       = nrow(compras)       - nrow(compras_limpas),
 
 ### 3. Padronização das datas e conversão para tipos apropriados
 
-Nesta etapa, foram criadas funções auxiliares para interpretar datas registradas em diferentes formatos e convertê-las para tipos reconhecidos pelo R. Essa transformação é importante porque os dados originais podem apresentar formatos distintos, como **AAAA-MM-DD**, **DD/MM/AAAA** e **MM/DD/AAAA**, dificultando a realização de cálculos e comparações temporais.
+Nesta etapa, foram criadas funções auxiliares para interpretar datas
+registradas em diferentes formatos e convertê-las para tipos
+reconhecidos pelo R. Essa transformação é importante porque os dados
+originais podem apresentar formatos distintos, como **AAAA-MM-DD**,
+**DD/MM/AAAA** e **MM/DD/AAAA**, dificultando a realização de cálculos e
+comparações temporais.
 
-A função `candidatas()` identifica possíveis interpretações para cada data, considerando os formatos ISO, **dia/mês/ano (dmy)** e **mês/dia/ano (mdy)**. Para isso, utiliza expressões regulares para identificar os padrões e a função `parse_date_time()`, do pacote lubridate, para interpretar os valores encontrados. Quando necessário, a função também considera a presença de horários e define o fuso horário utilizado na conversão.
+A função `candidatas()` identifica possíveis interpretações para cada
+data, considerando os formatos ISO, **dia/mês/ano (dmy)** e
+**mês/dia/ano (mdy)**. Para isso, utiliza expressões regulares para
+identificar os padrões e a função `parse_date_time()`, do pacote
+lubridate, para interpretar os valores encontrados. Quando necessário, a
+função também considera a presença de horários e define o fuso horário
+utilizado na conversão.
 
-Para datas sem horário, os valores são convertidos para o tipo Date. Para datas com horário, são mantidos como objetos de data e hora, permitindo cálculos de duração e comparação entre instantes.
+Para datas sem horário, os valores são convertidos para o tipo Date.
+Para datas com horário, são mantidos como objetos de data e hora,
+permitindo cálculos de duração e comparação entre instantes.
 
-A função `resolve_data()` é responsável por escolher a interpretação mais adequada entre as candidatas. Quando uma data pode representar dias e meses em ordens diferentes, a função verifica se as interpretações são ambíguas e, quando existem referências de início e fim, utiliza a diferença temporal entre elas para auxiliar na escolha do formato mais plausível. Caso não seja possível determinar a interpretação com base nessas referências, a função assume o formato dia/mês/ano e contabiliza os casos para informar possíveis limitações da conversão.
+A função `resolve_data()` é responsável por escolher a interpretação
+mais adequada entre as candidatas. Quando uma data pode representar dias
+e meses em ordens diferentes, a função verifica se as interpretações são
+ambíguas e, quando existem referências de início e fim, utiliza a
+diferença temporal entre elas para auxiliar na escolha do formato mais
+plausível. Caso não seja possível determinar a interpretação com base
+nessas referências, a função assume o formato dia/mês/ano e contabiliza
+os casos para informar possíveis limitações da conversão.
 
-Por fim, a função `dif_min()` calcula a diferença absoluta entre duas datas em minutos. Esse cálculo é utilizado como critério auxiliar para comparar as possíveis interpretações das datas de início e término de partidas e sessões.
+Por fim, a função `dif_min()` calcula a diferença absoluta entre duas
+datas em minutos. Esse cálculo é utilizado como critério auxiliar para
+comparar as possíveis interpretações das datas de início e término de
+partidas e sessões.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Padronização das datas e conversão para tipos apropriados}
 candidatas = function(x, hora = FALSE, tz = "UTC") {
@@ -428,13 +549,25 @@ dif_min  = function(a, b) abs(as.numeric(difftime(a, b, units = "mins")))
 
 ### 4. Aplicação da padronização das datas nos datasets
 
-Após a definição das funções auxiliares, elas são aplicadas às colunas de data dos datasets de compras, jogadores, partidas e sessões.
+Após a definição das funções auxiliares, elas são aplicadas às colunas
+de data dos datasets de compras, jogadores, partidas e sessões.
 
-No dataset de compras, a coluna data_compra é interpretada considerando a possibilidade de conter horário. No dataset de jogadores, as colunas data_nascimento e data_criacao_conta são convertidas para o tipo Date, pois representam datas sem necessidade de considerar o horário.
+No dataset de compras, a coluna data_compra é interpretada considerando
+a possibilidade de conter horário. No dataset de jogadores, as colunas
+data_nascimento e data_criacao_conta são convertidas para o tipo Date,
+pois representam datas sem necessidade de considerar o horário.
 
-Já nos datasets de partidas e sessões, as datas de início e término são interpretadas separadamente. Em seguida, as diferenças entre as possíveis interpretações dos pares de datas são calculadas para auxiliar na identificação do formato mais coerente. As colunas são então atualizadas com os valores convertidos.
+Já nos datasets de partidas e sessões, as datas de início e término são
+interpretadas separadamente. Em seguida, as diferenças entre as
+possíveis interpretações dos pares de datas são calculadas para auxiliar
+na identificação do formato mais coerente. As colunas são então
+atualizadas com os valores convertidos.
 
-A utilização de `mutate()` permite substituir as colunas originais pelos valores padronizados, mantendo as demais informações dos datasets. Dessa maneira, os campos temporais passam a utilizar tipos apropriados para análises cronológicas, cálculos de duração e verificações de consistência.
+A utilização de `mutate()` permite substituir as colunas originais pelos
+valores padronizados, mantendo as demais informações dos datasets. Dessa
+maneira, os campos temporais passam a utilizar tipos apropriados para
+análises cronológicas, cálculos de duração e verificações de
+consistência.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização das datas nos datasets}
 # --- COMPRAS ---
@@ -475,13 +608,31 @@ sessoes_limpas = sessoes_limpas %>%
 
 ### 5. Criação de funções para padronização de textos e números
 
-Nesta etapa, foram desenvolvidas funções auxiliares para uniformizar valores textuais e converter representações numéricas armazenadas como texto.
+Nesta etapa, foram desenvolvidas funções auxiliares para uniformizar
+valores textuais e converter representações numéricas armazenadas como
+texto.
 
-A função `chave_texto()` prepara os textos para comparação, convertendo os valores para caracteres, removendo espaços excedentes, eliminando diferenças de acentuação e transformando todas as letras em minúsculas. Isso permite reconhecer como equivalentes valores que diferem apenas na capitalização, na acentuação ou na quantidade de espaços.
+A função `chave_texto()` prepara os textos para comparação, convertendo
+os valores para caracteres, removendo espaços excedentes, eliminando
+diferenças de acentuação e transformando todas as letras em minúsculas.
+Isso permite reconhecer como equivalentes valores que diferem apenas na
+capitalização, na acentuação ou na quantidade de espaços.
 
-A função `padronizar_categoria()` utiliza essa chave normalizada para comparar os valores encontrados com uma lista de categorias válidas. Quando encontra uma correspondência, substitui o valor original pela grafia padronizada definida na lista. Quando não encontra correspondência, mantém o texto original após remover os espaços excedentes e exibe um aviso com os valores que não pertencem à lista de categorias válidas. Essa abordagem permite uniformizar as categorias sem descartar silenciosamente valores inesperados.
+A função `padronizar_categoria()` utiliza essa chave normalizada para
+comparar os valores encontrados com uma lista de categorias válidas.
+Quando encontra uma correspondência, substitui o valor original pela
+grafia padronizada definida na lista. Quando não encontra
+correspondência, mantém o texto original após remover os espaços
+excedentes e exibe um aviso com os valores que não pertencem à lista de
+categorias válidas. Essa abordagem permite uniformizar as categorias sem
+descartar silenciosamente valores inesperados.
 
-Por fim, a função `converter_numero()` converte valores textuais em números. Antes da conversão, os valores são transformados em caracteres, têm seus espaços excedentes removidos e as vírgulas decimais são substituídas por pontos. Em seguida, **as.numeric()** realiza a conversão para o tipo numérico, permitindo que esses valores sejam utilizados em cálculos matemáticos e análises estatísticas.
+Por fim, a função `converter_numero()` converte valores textuais em
+números. Antes da conversão, os valores são transformados em caracteres,
+têm seus espaços excedentes removidos e as vírgulas decimais são
+substituídas por pontos. Em seguida, **as.numeric()** realiza a
+conversão para o tipo numérico, permitindo que esses valores sejam
+utilizados em cálculos matemáticos e análises estatísticas.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Criação de funções para padronização de textos e números}
 chave_texto = function(x) {
@@ -505,13 +656,25 @@ converter_numero = function(x) {
 
 ### 6. Aplicação da padronização de textos e categorias
 
-Após a definição das funções auxiliares, são estabelecidas listas de categorias válidas para os gêneros de jogos e as plataformas utilizadas nas sessões.
+Após a definição das funções auxiliares, são estabelecidas listas de
+categorias válidas para os gêneros de jogos e as plataformas utilizadas
+nas sessões.
 
-A lista **generos_jogo_validos** define os gêneros aceitos, como FPS, RPG, Ação, Aventura e Estratégia. Já a lista plataformas_validas estabelece as categorias reconhecidas para as plataformas, incluindo PC, PlayStation, Xbox e Mobile.
+A lista **generos_jogo_validos** define os gêneros aceitos, como FPS,
+RPG, Ação, Aventura e Estratégia. Já a lista plataformas_validas
+estabelece as categorias reconhecidas para as plataformas, incluindo PC,
+PlayStation, Xbox e Mobile.
 
-Essas listas funcionam como referências para a padronização dos dados. Em seguida, a função `padronizar_categoria()` é aplicada às colunas plataforma e genero_jogo do dataset sessoes_limpas, por meio de `mutate()`
+Essas listas funcionam como referências para a padronização dos dados.
+Em seguida, a função `padronizar_categoria()` é aplicada às colunas
+plataforma e genero_jogo do dataset sessoes_limpas, por meio de
+`mutate()`
 
-Com isso, valores equivalentes passam a utilizar uma representação uniforme, reduzindo inconsistências causadas por diferenças de escrita. Os valores que não correspondem às categorias predefinidas são preservados e sinalizados para análise posterior, evitando a exclusão automática de informações potencialmente relevantes.
+Com isso, valores equivalentes passam a utilizar uma representação
+uniforme, reduzindo inconsistências causadas por diferenças de escrita.
+Os valores que não correspondem às categorias predefinidas são
+preservados e sinalizados para análise posterior, evitando a exclusão
+automática de informações potencialmente relevantes.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias I}
 generos_jogo_validos = c("FPS", "RPG", "Ação", "Aventura", "Estratégia", "Corrida",
@@ -577,7 +740,10 @@ itens_compras_limpos = itens_compras_limpos %>%
 
 `genero` e `pais` são padronizados com as listas válidas do gerador.
 
-Em relação a `cidade`, quando a mesma cidade aparece em outra linha com a grafia original (misturando maiúsculas e minúsculas), essa grafia é usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da, del, of...) em minúsculo.
+Em relação a `cidade`, quando a mesma cidade aparece em outra linha com
+a grafia original (misturando maiúsculas e minúsculas), essa grafia é
+usada. Caso contrário, aplica-se "Título" mantendo partículas (de, da,
+del, of...) em minúsculo.
 
 ```{r Etapa 4 - Transformação dos Dados Sujos : Aplicação da padronização de textos e categorias V}
 # --- Vetores de Validação e Padronização ---
@@ -643,7 +809,9 @@ jogadores_limpos = jogadores_limpos %>%
 
 ### Etapa 4 - Correção: Funções base
 
-`datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`, `dmy` e `mdy`), mas converte só as linhas que casam com cada formato e usa `fast_strptime()` com formato fixo.
+`datas_corrigidas()` mantém a mesma saída de antes (lista com `iso`,
+`dmy` e `mdy`), mas converte só as linhas que casam com cada formato e
+usa `fast_strptime()` com formato fixo.
 
 ```{r Funções base}
 
@@ -789,7 +957,9 @@ eh_ambigua = function(cand) {
 
 ### Etapa 4 - Correções: Sessões e Partidas: referência = `duracao_minutos`
 
-Como só uma das duas datas da linha é suja, a outra fica em ISO. A função testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início × as três do fim) e escolhe a que bate com `duracao_minutos`.
+Como só uma das duas datas da linha é suja, a outra fica em ISO. A
+função testa as 9 combinações de leitura (ISO, dd/mm, mm/dd do início ×
+as três do fim) e escolhe a que bate com `duracao_minutos`.
 
 ```{r Sessões e Partidas}
 
@@ -948,7 +1118,9 @@ corrigir_datas_partidas = function(partidas) {
 
 ### Etapa 4 - Correções: Compras: `corrigir_datas` + intervalo da sessão
 
-A compra sempre acontece dentro do intervalo da sua sessão. Para datas ambíguas, vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas couberem, assume dd/mm.
+A compra sempre acontece dentro do intervalo da sua sessão. Para datas
+ambíguas, vale a leitura que cabe nesse intervalo. Se nenhuma ou as duas
+couberem, assume dd/mm.
 
 ```{r Compras}
 
@@ -1024,11 +1196,16 @@ corrigir_datas_compras = function(compras, sessoes) {
 
 ### Etapa 4 - Correções: Jogadores
 
-**`data_nascimento`:** a idade calculada na data de referência deve ser igual a `idade`.
+**`data_nascimento`:** a idade calculada na data de referência deve ser
+igual a `idade`.
 
-**`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
+**`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador
+garante: a conta é criada depois dos 13 anos do jogador, depois de
+2010-01-01 e antes da primeira sessão.
 
-`data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
+`data_ref` é a data em que o gerador rodou (pelo nome dos arquivos,
+2026-10-19). A função imprime uma conferência: o percentual das datas já
+em ISO cuja idade bate com `idade`.
 
 ```{r}
 
@@ -1239,9 +1416,12 @@ corrigir_datas_jogadores = function(
 
 Para cada linha, usando o `pais` como chave:
 
-1.  Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote `ISOcodes`), só padroniza para maiúsculo e sem espaços.
-2.  Se é um nome por extenso, procura no dicionário `dic_estados` (nome do estado no país → sigla).
-3.  Se não achar, mantém o texto e lista no console para completar o dicionário.
+1.  Se o `estado` já é uma sigla válida daquele país (ISO 3166-2, pacote
+    `ISOcodes`), só padroniza para maiúsculo e sem espaços.
+2.  Se é um nome por extenso, procura no dicionário `dic_estados` (nome
+    do estado no país → sigla).
+3.  Se não achar, mantém o texto e lista no console para completar o
+    dicionário.
 
 ```{r Configuração do Mapeamento e Validação de Países/Estados}
 
@@ -1492,11 +1672,13 @@ corrigir_estados = function(df) {
 
 ------------------------------------------------------------------------
 
-## Etapa 5 - Validação {#etapa-5---validação}
+## Etapa 5 - Validação
 
 ### Validação geral
 
-Cada verificação conta quantas linhas violam uma regra e é registrada em um painel. O resultado completo está no final desta seção: `falhas = 0` significa que a regra foi respeitada.
+Cada verificação conta quantas linhas violam uma regra e é registrada em
+um painel. O resultado completo está no final desta seção: `falhas = 0`
+significa que a regra foi respeitada.
 
 #### Painel e verificações comuns a todas as tabelas
 
@@ -1783,9 +1965,12 @@ cat("\nVerificações:", nrow(painel),
 
 ------------------------------------------------------------------------
 
-## Etapa 6 - Geração dos Gráficos {#etapa-6---geração-dos-gráficos}
+## Etapa 6 - Geração dos Gráficos
 
-Antes de gerar os gráficos de AED com a biblioteca `ggplot2`, iremos utilizar ferramentas de estatística descritiva, como média, moda, mediana, quartis, desvio padrão, etc para levantar algumas informações númericas que possam gerar insights preciosos posteriormente
+Antes de gerar os gráficos de AED com a biblioteca `ggplot2`, iremos
+utilizar ferramentas de estatística descritiva, como média, moda,
+mediana, quartis, desvio padrão, etc para levantar algumas informações
+númericas que possam gerar insights preciosos posteriormente
 
 ```{r Análise de Valores com Estatística Descritiva - Duração da Sessão}
 # Verificar o nome das observações dos datasets processados
@@ -2108,82 +2293,72 @@ experiencia_genero |>
 
 ```
 
-```{r Análise de Valores com Estatística Descritiva - Itens e categorias mais populares}
-# Quantidade por item
-cat('Itens mais populares:\n')
-
-itens_compras_limpos |>
-  group_by(item_id) |>
-  summarise(
-    quantidade_total = sum(
-      quantidade,
-      na.rm = TRUE
-    )
-  ) |>
-  arrange(desc(quantidade_total))
-
-# Quantidade por categoria
+```{r Análise de Valores com Estatística Descritiva - Itens mais populares por categoria}
+# Quantidade por item e categoria
 itens_populares = itens_compras_limpos |>
   left_join(
     itens_limpos |>
       select(item_id, nome_item, categoria_item),
     by = "item_id"
-  )
-
-cat('Categorias mais populares:\n')
-
-itens_populares |>
-  group_by(categoria_item) |>
+  ) |>
+  group_by(categoria_item, item_id, nome_item) |>
   summarise(
     quantidade_total = sum(
       quantidade,
       na.rm = TRUE
-    )
+    ),
+    .groups = "drop"
   ) |>
-  arrange(desc(quantidade_total))
+  arrange(categoria_item, desc(quantidade_total))
+
+cat('Itens mais populares por categoria:\n')
+itens_populares
+
+# Itens mais populares
+itens_populares |>
+  group_by(categoria_item) |>
+  slice_max(
+    order_by = quantidade_total,
+    n = 1,
+    with_ties = TRUE
+  ) |>
+  ungroup()
+
+# Maior e menor quantidade
+itens_populares |>
+  group_by(categoria_item) |>
+  summarise(
+    maior_quantidade = max(quantidade_total),
+    menor_quantidade = min(quantidade_total)
+  )
 
 # Média
-media_quantidade = mean(
-  itens_compras_limpos$quantidade,
-  na.rm = TRUE
-)
-
-max_quantidade = max(
-  itens_compras_limpos$quantidade,
-  na.rm = TRUE
-)
-
-min_quantidade = min(
-  itens_compras_limpos$quantidade,
-  na.rm = TRUE
-)
-
-cat('Maior Quantidade Comprada:\n')
-max_quantidade
-cat('\n')
-
-cat('Menor Quantidade Comprada:\n')
-min_quantidade
-cat('\n')
-
-cat('Média de Quantidade Comprada:\n')
-round(media_quantidade, 2)
-cat('\n')
+itens_populares |>
+  group_by(categoria_item) |>
+  summarise(
+    media_quantidade = round(
+      mean(quantidade_total),
+      2
+    )
+  )
 
 # Mediana
-mediana_quantidade = median(
-  itens_compras_limpos$quantidade,
-  na.rm = TRUE
-)
-
-cat('Mediana de Quantidade Comprada:\n')
-mediana_quantidade
-cat('\n')
+itens_populares |>
+  group_by(categoria_item) |>
+  summarise(
+    mediana_quantidade = median(quantidade_total)
+  )
 
 # Moda
-itens_compras_limpos |>
-  count(quantidade, sort = TRUE)
-
+itens_populares |>
+  count(categoria_item, quantidade_total) |>
+  group_by(categoria_item) |>
+  slice_max(
+    order_by = n,
+    n = 1,
+    with_ties = TRUE
+  ) |>
+  ungroup()
 ```
 
 ```{r Análise de Valores com Estatística Descritiva - Evolução do faturamento ao longo do tempo}
@@ -2362,33 +2537,55 @@ itens_compras_limpos |>
   summary()
 ```
 
-1.  Duração das sessões por plataforma
+1.  Duração Média das Sessões por Plataforma
 
-```{r}
-sessoes_limpas = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
+Esse gráfico permite analisar a duração média das sessões por
+plataforma. Os resultados exibem o nível de engajamento dos jogadores em
+cada plataforma, não representando o engajamento por completo, mas
+colocando em evidência a permanência média dos jogadores em cada sessão,
+permitindo identificar quais plataformas apresentam sessões de jogo mais
+prolongadas e, consequentemente, possíveis diferenças no comportamento
+dos usuários.
+
+Os resultados obtidos indicam que o nível de engajamento dos jogadores
+nas plataformas PC e PlayStation é bastante semelhante. O Xbox apresenta
+o maior nível de engajamento, enquanto o Mobile registra o menor índice
+entre as plataformas analisadas.
+
+```{r Gráfico — Duração das sessões por plataforma}
+
+sessoes_plot = sessoes_limpas |> filter(!is.na(plataforma), !is.na(duracao_minutos))
 
 ggplot(
-  sessoes_limpas,
+  sessoes_plot,
   aes(
     x = plataforma,
     y = duracao_minutos
   )
-) + geom_col(
+) + stat_summary(
+  fun = mean,
+  geom = "col",
   fill = "lightblue"
 ) + labs(
-  title = "Duração das Sessões por Plataforma",
+  title = "Duração Média das Sessões por Plataforma",
   x = "Plataforma",
   y = "Duração (min)"
 ) + scale_y_continuous(
-  labels = scales::label_number(big.mark = ".", decimal.mark = ","),
-  limits = c(0, 1000),
-  breaks = seq(0, 1000, by = 200)
+  labels = scales::label_number(big.mark = ".", decimal.mark = ",")
 ) + theme_minimal()
 ```
 
 2.  Horários e dias com maior atividade
 
-```{r}
+Esse gráfico permite analisar os períodos de tempo com maior atividade
+dos jogadores. Os resultados são filtrados pelo dia da semana permitindo
+verificar em quais dias da semana tem mais e menos atividade dos
+usuários.
+
+Os resultados gerados sugerem que a maioria dos jogadores estão passando
+mais tempo jogando no período noturno e no final do período da tarde.
+
+```{r Gráfico — Horários e dias com maior atividade}
 sessoes_limpas |>
   mutate(
     hora = format(data_inicio_sessao, "%H"),
@@ -2414,17 +2611,33 @@ sessoes_limpas |>
     color = "Dias da Semana"
   ) + scale_y_continuous(
     labels = scales::label_number(big.mark = ".", decimal.mark = ",")
-  )
-  theme_minimal()
+  ) + theme_minimal()
 ```
 
 3.  Evolução dos jogadores durante as sessões
 
-```{r}
-evolucao_jogadores = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
+Esse gráfico permite analisar a evolução dos jogadores durante as
+sessões por meio da quantidade de experiência adquirida.
+
+Os resultados permitem analisar como a experiência adquirida pelos
+jogadores varia ao longo das sessões, identificando tendências de
+evolução e diferenças no desempenho entre os jogadores.
+
+Os resultados gerados sugerem que a maioria dos jogadores não estão
+apresentando uma evolução tão substancial com algumas exceções. A
+visualização desse gráfico não mostra o aumento crescente esperado
+conforme o tempo de sessão aumenta, mas isso pode ser decorrente da
+aleatoriedade dos dados gerados pelo gerador do projeto.
+
+Todavia, uma outra possível análise seria a dificuldade crescente de evoluir conforme
+o nível elevado dos jogadores, ou seja, conforme o nível dos jogadores aumenta, mais
+difívil fica ganhar mais experiência para aumentar ainda mais o nível atual.
+
+```{r Gráfico — Evolução dos jogadores durante as sessões}
+evolucao_plot = evolucao_jogadores |> filter(!is.na(duracao_minutos), !is.na(evolucao))
 
 ggplot(
-  evolucao_jogadores,
+  evolucao_plot,
   aes(
     x = duracao_minutos,
     y = evolucao
@@ -2436,19 +2649,78 @@ ggplot(
 ) + labs(
   title = "Evolução dos Jogadores durante as Sessões",
   x = "Duração (min)",
-  y = "Evolução (nivel_fim - nivel_inicio)"
+  y = "Evolução"
 ) + theme_minimal()
 ```
 
 4.  Relação entre duração da sessão e experiência adquirida
 
-```{r}
+Esse gráfico permite analisar a relação entre a duração da sessão e a
+experiência adquirida.
 
+A visualização ocorre por 3 intervalos pré-definidos, facilitando a
+comparação entre os diferentes períodos de duração e a identificação de
+possíveis padrões na experiência obtida pelos jogadores.
+
+Diferente do gráfico anterior, os resultados gerados exibem o
+comportamento contrário: conforme o tempo de sessão aumenta, a
+experiência adquirida também aumenta, indicando uma possível relação
+positiva entre a duração das sessões e a quantidade de experiência
+obtida pelos jogadores. Entretanto, esse comportamento pode estar
+relacionado à aleatoriedade dos dados gerados pelo gerador do projeto,
+não sendo possível afirmar que essa relação representa um padrão real.
+
+```{r Gráfico — Relação entre a duração da sessão e experiência adquirida}
+experiencia_faixa = experiencia_sessoes |>
+  mutate(
+    faixa_tempo = cut(
+      duracao_minutos,
+      breaks = c(0, 30, 50, 100),
+      include.lowest = TRUE,
+    )
+  ) |>
+  group_by(faixa_tempo) |>
+  summarise(
+    experiencia_ganha = mean(
+      experiencia_ganha,
+      na.rm = TRUE
+    )
+  ) |> filter(!is.na(faixa_tempo), !is.na(experiencia_ganha))
+
+ggplot(
+  experiencia_faixa,
+  aes(
+    x = faixa_tempo,
+    y = experiencia_ganha
+  )
+) +
+  geom_col(
+    fill = "steelblue",
+  ) +
+  labs(
+    title = "Relação entre Duração da Sessão e Experiência Adquirida",
+    x = "Intervalo de Tempo (min)",
+    y = "Experiência Adquirida"
+  ) +
+  theme_minimal()
 ```
 
 5.  Experiência adquirida por gênero de jogo
 
-```{r}
+Esse gráfico permite analisar a experiência adquirida pelos jogadores
+filtrada pelos gêneros de jogo. A exibição desses resultados se dá por
+meio de um boxplot, em que os dados são distribuídos em quartis,
+permitindo visualizar a mediana, a dispersão e os valores extremos de
+experiência em cada gênero, a fim de comparar a distribuição da
+experiência adquirida entre os diferentes gêneros de jogo.
+
+Os resultados mostram que gêneros como RPG, Simulação e Survival
+apresentam maiores níveis medianos de experiência adquirida. Já Luta e
+Corrida possuem as menores medianas. Também é possível observar maior
+dispersão nos gêneros com valores mais elevados, além da presença de
+valores extremos em praticamente todos os gêneros.
+
+```{r Gráfico — Experiência adquirida por gênero de jogo}
 ggplot(
   experiencia_genero,
   aes(
@@ -2463,35 +2735,261 @@ ggplot(
   y = "Experiência Adquirida"
 ) + scale_x_discrete(
   expand = expansion(add = 1)
-) + theme_minimal()
+) + theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
-6.  Itens e categorias mais populares
+6.  Itens mais populares por categoria
 
-```{r}
+Esse gráfico permite analisar os itens de jogo mais populares por
+categoria. A visualização inclui também uma linha tracejada
+horizontalmente que exibe a média da quantidade total de itens
+comprados, funcionando como um parâmetro de referência, permitindo
+identificar quais itens apresentam uma quantidade de compras superior ou
+inferior à média geral, facilitando a identificação daqueles com maior
+ou menor popularidade em relação ao comportamento médio das compras.
 
+Os resultados mostram que 6 dos 10 itens estão abaixo da média, 3
+apresentam quantidades de compras ligeiramente acima dela e apenas 1 se
+destaca significativamente, indicando uma concentração maior de itens
+com desempenho inferior ou próximo à média.
+
+Esse cenário indica uma distribuição desigual da popularidade entre os
+itens, na qual um único item concentra uma quantidade de compras
+significativamente maior que os demais, influenciando também a média
+geral. Isso sugere que a preferência dos jogadores está concentrada em
+poucos itens, enquanto a maioria apresenta uma procura mais moderada.
+
+```{r Gráfico — Itens mais populares por categoria}
+itens_populares = itens_compras_limpos |>
+  left_join(
+    itens_limpos |>
+      select(item_id, nome_item, categoria_item),
+    by = "item_id"
+  ) |>
+  group_by(categoria_item) |>
+  summarise(
+    quantidade_total = sum(
+      quantidade,
+      na.rm = TRUE
+    )
+  )
+ggplot(
+  itens_populares,
+  aes(
+    x = categoria_item,
+    y = quantidade_total
+  )
+) + geom_col() + labs(
+  title = "Itens mais populares por categoria",
+  x = "Categoria",
+  y = "Quantidade de Itens Comprados"
+) + geom_hline(
+  yintercept = mean(itens_populares$quantidade_total),
+  color = "steelblue",
+  linetype = "dashed"
+) + theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
 7.  Evolução do faturamento ao longo do tempo
 
-```{r}
+Esse gráfico permite analisar a evolução do faturamento ao longo do
+período dos 12 meses do ano.
 
+O gráfico apresenta a evolução do faturamento ao longo do ano. Após
+oscilações entre janeiro e abril, observa-se crescimento gradual de maio
+a outubro, quando ocorre o maior faturamento. Em novembro há uma queda,
+seguida de estabilidade em dezembro. Esse comportamento demonstra
+aumento das receitas até outubro e posterior retração o que indica uma
+estabilidade consistente do faturamento geral.
+
+```{r Gráfico — Evolução do faturamento ao longo do tempo}
+faturamento = itens_compras_limpos |>
+  left_join(
+    compras_limpas |>
+      select(compra_id, data_compra),
+    by = "compra_id"
+  )
+
+faturamento_mensal = faturamento |>
+  group_by(mes = month(data_compra)) |>
+  summarise(
+    faturamento = sum(valor_total_item, na.rm = TRUE)
+  )
+
+ggplot(
+  faturamento_mensal,
+  aes(
+    x = mes,
+    y = faturamento
+  )
+) +
+  geom_area(
+    fill = "darkgreen",
+    alpha = 0.8,
+    colour = "black",
+    lwd = 0.8,
+    linetype = "longdash",
+    na.rm = TRUE
+  ) +
+  scale_x_continuous(
+    breaks = 1:12,
+    labels = c(
+      "Janeiro", "Fevereiro", "Março",
+      "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro",
+      "Outubro", "Novembro", "Dezembro"
+    ),
+  ) + scale_y_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  ) + labs(
+    title = "Evolução do Faturamento ao Longo do Tempo",
+    x = "Meses do Ano",
+    y = "Faturamento(R$)"
+  ) +
+  theme_minimal() + theme(
+  axis.text.x = element_text(angle = 90)
+)
 ```
 
 8.  Impacto dos descontos nas compras
 
-```{r}
+Esse gráfico permite analisar o impacto dos descontos nas compras. A
+visualização faz uma comparação entre as compras com desconto e preço
+normal com os valores sendo filtrados pelas categorias dos itens.
 
+O gráfico mostra que o preço normal apresenta faturamento médio superior
+ao das compras com desconto em todas as categorias. As maiores
+diferenças aparecem em Passe de Batalha, Pacote e Moeda Virtual. DLC
+apresenta o maior faturamento médio entre as compras com desconto,
+embora permaneça abaixo do respectivo preço normal. Essa diferença
+indica que as compras com desconto geraram faturamento médio inferior em
+todas as categorias.
+
+```{r Gráfico — Impacto dos descontos nas compras}
+desconto_categoria = itens_compras_limpos |>
+  left_join(
+    itens_limpos |> select(item_id, categoria_item),
+    by = "item_id"
+  ) |>
+  mutate(
+    tipo_preco = if_else(
+      desconto > 0 & !desconto_invalido,
+      "Com Desconto",
+      "Preço Normal"
+    )
+  ) |>
+  group_by(categoria_item, tipo_preco) |>
+  summarise(
+    faturamento_medio = mean(valor_total_item, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(
+  desconto_categoria,
+  aes(
+    x = categoria_item, 
+    y = faturamento_medio, 
+    fill = tipo_preco
+  )
+) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Impacto dos descontos nas compras",
+    x = "Categoria",
+    y = "Faturamento Médio",
+    fill = "Tipo de Preço"
+  ) +
+  theme_minimal() + theme(
+    axis.text.x = element_text(angle = 90)
+  )
 ```
 
 ------------------------------------------------------------------------
 
-## Considerações Finais {#considerações-finais}
+## Considerações Finais
 
-Este relatório documentou o percurso de preparação dos dados de telemetria gerados para o projeto integrado da equipe 4, em parceria com a MIMA Games & Design LTDA. Os seis conjuntos de dados (compras, itens, itens_compras, jogadores, partidas e sessões) foram importados, inspecionados com `head()`, `names()`, `str()` e `summary()` e investigados quanto a valores ausentes e inconsistências. A exploração confirmou que todos os conjuntos traziam algum tipo de "sujeira", o que justificou a etapa de transformação. Na auditoria de qualidade, optou-se por sinalizar os descontos fora do intervalo entre 0 e 1 com a coluna `desconto_invalido`, em vez de corrigi-los. Essa escolha preserva o dado original, mantém a rastreabilidade da análise e adia a decisão de tratamento, evitando inserir no dataset valores que parecem legítimos, mas são apenas palpites.
+Este relatório documentou o percurso de preparação dos dados de
+telemetria gerados para o projeto integrado da equipe 4, em parceria com
+a MIMA Games & Design LTDA. Os seis conjuntos de dados (compras, itens,
+itens_compras, jogadores, partidas e sessões) foram importados,
+inspecionados com `head()`, `names()`, `str()` e `summary()` e
+investigados quanto a valores ausentes e inconsistências. A exploração
+confirmou que todos os conjuntos traziam algum tipo de "sujeira", o que
+justificou a etapa de transformação. Na auditoria de qualidade, optou-se
+por sinalizar os descontos fora do intervalo entre 0 e 1 com a coluna
+`desconto_invalido`, em vez de corrigi-los. Essa escolha preserva o dado
+original, mantém a rastreabilidade da análise e adia a decisão de
+tratamento, evitando inserir no dataset valores que parecem legítimos,
+mas são apenas palpites.
 
-A limpeza seguiu uma sequência deliberada. Primeiro, as diferentes representações de ausência ("", "NA" e "NULL") foram padronizadas para `NA`, e os registros duplicados foram removidos com `distinct()`, com a contagem dos removidos em cada conjunto. Depois, os textos e as categorias foram uniformizados a partir de listas de valores válidos (plataformas, gêneros de jogo, resultados, categorias, raridades, países e gêneros), com `padronizar_categoria()`. Valores fora da lista foram preservados e sinalizados, e não descartados em silêncio. As cidades receberam grafia de referência ou formatação em "Título", os números armazenados como texto foram convertidos e os estados foram mapeados para siglas ISO 3166-2 com apoio de um dicionário próprio. O tratamento das datas, que apareciam em formatos ISO, dd/mm/aaaa e mm/dd/aaaa, foi o ponto mais delicado. Para resolver ambiguidades, foram usadas referências internas dos próprios dados: a `duracao_minutos` em sessões e partidas, o intervalo da sessão em compras, a `idade` e os limites de criação de conta em jogadores. Os casos sem referência conclusiva foram tratados como dd/mm, e a contagem desses casos é informada ao final de cada correção.
+A limpeza seguiu uma sequência deliberada. Primeiro, as diferentes
+representações de ausência ("", "NA" e "NULL") foram padronizadas para
+`NA`, e os registros duplicados foram removidos com `distinct()`, com a
+contagem dos removidos em cada conjunto. Depois, os textos e as
+categorias foram uniformizados a partir de listas de valores válidos
+(plataformas, gêneros de jogo, resultados, categorias, raridades, países
+e gêneros), com `padronizar_categoria()`. Valores fora da lista foram
+preservados e sinalizados, e não descartados em silêncio. As cidades
+receberam grafia de referência ou formatação em "Título", os números
+armazenados como texto foram convertidos e os estados foram mapeados
+para siglas ISO 3166-2 com apoio de um dicionário próprio. O tratamento
+das datas, que apareciam em formatos ISO, dd/mm/aaaa e mm/dd/aaaa, foi o
+ponto mais delicado. Para resolver ambiguidades, foram usadas
+referências internas dos próprios dados: a `duracao_minutos` em sessões
+e partidas, o intervalo da sessão em compras, a `idade` e os limites de
+criação de conta em jogadores. Os casos sem referência conclusiva foram
+tratados como dd/mm, e a contagem desses casos é informada ao final de
+cada correção.
 
-A etapa de validação conferiu de forma sistemática os resultados da limpeza. Cada regra foi implementada como uma verificação que conta as linhas que a violam e registra o resultado em um painel, em que `falhas = 0` indica que a regra foi respeitada. Foram aplicadas verificações comuns a todas as tabelas (linhas duplicadas, chaves repetidas, ausências em colunas que não deveriam tê-las e textos vazios remanescentes) e verificações específicas de cada conjunto. Em jogadores, checaram-se os valores permitidos, a coerência entre idade e data de nascimento e a ordem entre criação da conta e primeira sessão. Em sessões e partidas, conferiram-se a ordem entre início e fim, a compatibilidade com `duracao_minutos` e o encaixe das partidas no intervalo da sessão. Em compras, verificou-se se cada compra ocorre dentro da sessão, fora de qualquer partida e com ao menos um item. Em itens e itens_compras, validaram-se o catálogo, os preços por raridade, as quantidades, os percentuais de desconto e a consistência entre valor unitário, desconto e valor total. As integridades referenciais entre as tabelas também foram testadas.
+A etapa de validação conferiu de forma sistemática os resultados da
+limpeza. Cada regra foi implementada como uma verificação que conta as
+linhas que a violam e registra o resultado em um painel, em que
+`falhas = 0` indica que a regra foi respeitada. Foram aplicadas
+verificações comuns a todas as tabelas (linhas duplicadas, chaves
+repetidas, ausências em colunas que não deveriam tê-las e textos vazios
+remanescentes) e verificações específicas de cada conjunto. Em
+jogadores, checaram-se os valores permitidos, a coerência entre idade e
+data de nascimento e a ordem entre criação da conta e primeira sessão.
+Em sessões e partidas, conferiram-se a ordem entre início e fim, a
+compatibilidade com `duracao_minutos` e o encaixe das partidas no
+intervalo da sessão. Em compras, verificou-se se cada compra ocorre
+dentro da sessão, fora de qualquer partida e com ao menos um item. Em
+itens e itens_compras, validaram-se o catálogo, os preços por raridade,
+as quantidades, os percentuais de desconto e a consistência entre valor
+unitário, desconto e valor total. As integridades referenciais entre as
+tabelas também foram testadas.
 
-O próximo passo é gerar com o `ggplot2` os gráficos da Etapa 6, que apoiarão a interpretação do comportamento dos jogadores. Concluída essa etapa, os dados estarão prontos para alimentar o pipeline de telemetria da MIMA Games.
+Por fim, com a geração dos gráficos de análise utilizando a biblioteca
+`ggplot2`, foi possível extrair insights relevantes por meio de
+diferentes tipos de visualização, que permitiram identificar tendências
+e padrões nos dados gerados, além de verificar seu nível de
+consistência.
+
+As visualizações possibilitaram explorar diferentes aspectos do conjunto
+de dados, desde o comportamento dos jogadores durante as sessões até o
+desempenho comercial dos itens. Foram identificadas diferenças na
+experiência adquirida entre os gêneros de jogo, variações na
+popularidade dos itens e oscilações no faturamento ao longo dos meses.
+Também foi possível observar diferenças significativas entre o
+faturamento médio das compras com desconto e aquelas realizadas pelo
+preço normal.
+
+Entretanto, nem todos os resultados apresentaram os comportamentos
+esperados. Em algumas análises, os padrões identificados foram
+divergentes entre as visualizações, especialmente na relação entre a
+duração das sessões e a experiência adquirida. Essas inconsistências
+podem estar relacionadas à aleatoriedade presente no processo de geração
+dos dados, que não necessariamente reproduz comportamentos realistas dos
+jogadores.
+
+Dessa forma, os gráficos não apenas facilitaram a interpretação dos
+dados, mas também permitiram identificar possíveis limitações no
+conjunto analisado. As informações obtidas demonstram a importância da
+visualização de dados como ferramenta de análise exploratória,
+auxiliando na identificação de padrões, comparação de variáveis e
+avaliação da qualidade das informações antes de utilizá-las como base
+para conclusões mais aprofundadas.
