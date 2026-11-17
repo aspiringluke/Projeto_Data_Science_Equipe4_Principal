@@ -198,6 +198,21 @@ Se o ping funcionar, executar playbooks
 ```bash
 ansible-playbook playbook.yml -i inventory.ini --private-key ~/.ssh/devops_lab
 ```
+---
+
+### 7. Conteinerização e Deploy Contínuo (CI/CD)
+
+Para automatizar a publicação e a atualização da aplicação nas máquinas virtuais sem intervenção manual, foi configurada uma pipeline de CI/CD com **GitHub Actions** e **Docker**:
+
+* **Ambiente e Runner:** Configuração de um *self-hosted runner* (`Thierry`) no ambiente WSL (Ubuntu) com permissões de acesso ao socket do Docker para execução local dos workflows.
+* **Conteinerização (`Dockerfile` e `requirements.txt`):** Criação da imagem baseada em `python:3.9-slim`, instalando as dependências necessárias para os scripts de Data Science e expondo a porta `8000`.
+* **Orquestração (`docker-compose.yml`):** Definição do serviço na pasta `infraestrutura` para gerir o ciclo de vida, mapeamento de portas e volumes dos containers.
+* **Automação de Deploy:** Sempre que há um `push` ou *merge* na branch `main`, o pipeline reconstrói a imagem e reinicia os containers automaticamente:
+
+```bash
+cd infraestrutura/
+docker compose down
+docker compose up -d --build
 
 ---
 
