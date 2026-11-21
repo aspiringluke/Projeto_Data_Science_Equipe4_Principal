@@ -2620,6 +2620,16 @@ ggplot(
 
 7.  Evolução do faturamento ao longo do tempo
 
+Esse gráfico permite analisar a evolução do faturamento ao longo do
+período do tempo estabelecido pelos dados gerados.
+
+O gráfico apresenta a evolução do faturamento ao longo dos meses dos anos. Após
+oscilações entre janeiro e abril, observa-se crescimento gradual de maio
+a outubro, quando ocorre o maior faturamento. Em novembro há uma queda,
+seguida de estabilidade em dezembro. Esse comportamento demonstra
+aumento das receitas até outubro e posterior retração o que indica uma
+estabilidade consistente do faturamento geral.
+
 ```{r Gráfico — Evolução do faturamento ao longo do tempo}
 faturamento = itens_compras_limpos |>
   left_join(
@@ -2629,15 +2639,19 @@ faturamento = itens_compras_limpos |>
   )
 
 faturamento_mensal = faturamento |>
-  group_by(mes = month(data_compra)) |>
+  mutate(
+    mes_ano = lubridate::floor_date(as.Date(data_compra), unit = "month")
+  ) |>
+  group_by(mes_ano) |>
   summarise(
-    faturamento = sum(valor_total_item, na.rm = TRUE)
+    faturamento = sum(valor_total_item, na.rm = TRUE),
+    .groups = "drop"
   )
 
 ggplot(
   faturamento_mensal,
   aes(
-    x = mes,
+    x = mes_ano,
     y = faturamento
   )
 ) +
@@ -2649,27 +2663,53 @@ ggplot(
     linetype = "longdash",
     na.rm = TRUE
   ) +
-  scale_x_continuous(
-    breaks = 1:12,
-    labels = c(
-      "Janeiro", "Fevereiro", "Março",
-      "Abril", "Maio", "Junho",
-      "Julho", "Agosto", "Setembro",
-      "Outubro", "Novembro", "Dezembro"
-    ),
-  ) + scale_y_continuous(
-    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
-  ) + labs(
-    title = "Evolução do Faturamento ao Longo do Tempo",
-    x = "Meses do Ano",
-    y = "Faturamento(R$)"
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = function(datas) {
+      meses = c(
+        "Janeiro", "Fevereiro", "Março",
+        "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro",
+        "Outubro", "Novembro", "Dezembro"
+      )
+
+      paste(
+        meses[lubridate::month(datas)],
+        "de",
+        lubridate::year(datas)
+      )
+    }
   ) +
-  theme_minimal() + theme(
-  axis.text.x = element_text(angle = 90)
-)
+  scale_y_continuous(
+    labels = scales::label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  labs(
+    title = "Evolução do Faturamento ao Longo do Tempo",
+    x = "Mês e Ano",
+    y = "Faturamento (R$)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90)
+  )
 ```
 
 8.  Impacto dos descontos nas compras
+
+Esse gráfico permite analisar o impacto dos descontos nas compras. A
+visualização faz uma comparação entre as compras com desconto e preço
+normal com os valores sendo filtrados pelas categorias dos itens.
+
+O gráfico mostra que o preço normal apresenta faturamento médio superior
+ao das compras com desconto em todas as categorias. As maiores
+diferenças aparecem em Passe de Batalha, Pacote e Moeda Virtual. DLC
+apresenta o maior faturamento médio entre as compras com desconto,
+embora permaneça abaixo do respectivo preço normal. Essa diferença
+indica que as compras com desconto geraram faturamento médio inferior em
+todas as categorias.
 
 ```{r Gráfico — Impacto dos descontos nas compras}
 desconto_categoria = itens_compras_limpos |>
