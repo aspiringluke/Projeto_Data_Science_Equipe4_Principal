@@ -90,8 +90,8 @@ encontrar_csv = function(pasta, padrao){
 padroes = c(
   compras       = "^\\d+-compras_[0-9]{8}_.*\\.csv$",
   itens         = "^\\d+-itens_[0-9]{8}_.*\\.csv$",
-  itens_compras = "^\\d+-itens_compras_[0-9]{8}_.*\\.csv$",
-  jogadores     = "^\\d+-jogadores_[0-9]{8}_.*\\.csv$",
+  itens_compras = "^\\d+-itens_compra_[0-9]{8}_.*\\.csv$",
+  jogadores     = "^\\d+-jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
   partidas      = "^\\d+-partidas_[0-9]{8}_.*\\.csv$",
   sessoes       = "^\\d+-sessoes_[0-9]{8}_.*\\.csv$"
 )
