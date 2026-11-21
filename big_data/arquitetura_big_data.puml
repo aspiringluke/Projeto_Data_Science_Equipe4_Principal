@@ -1,0 +1,37 @@
+
+@startuml
+
+top to bottom direction
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 16
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 2
+skinparam nodesep 35
+skinparam ranksep 30
+
+rectangle "01 - VM1: GERACAO\nPython gera dados sinteticos\nArquivos CSV organizados em lotes" as VM1 #DBEAFE
+
+rectangle "02 - VM2: TRATAMENTO\nPipeline Python e ETL em R\nLimpeza, padronizacao e validacao" as VM2 #D1FAE5
+
+rectangle "03 - DATA WAREHOUSE\nSQLite - \nModelo dimensional: fatos e dimensoes" as DW #FEF3C7
+
+rectangle "04 - ANALISE OLAP\nConsultas multidimensionais\nIndicadores e visualizacoes" as OLAP #EDE9FE
+
+VM1 -down-> VM2 : Envio dos CSVs
+VM2 -down-> DW : Carga dos dados tratados
+DW -down-> OLAP : Consultas analiticas
+
+rectangle "HADOOP\nProcessamento distribuido" as H #DBEAFE
+rectangle "APACHE SPARK\nProcessamento analitico" as S #D1FAE5
+rectangle "MACHINE LEARNING\nModelos preditivos" as ML #FCE7F3
+
+H -[hidden]right- S
+S -[hidden]right- ML
+OLAP -[hidden]down- S
+
+
+@enduml
