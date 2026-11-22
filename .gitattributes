@@ -1,0 +1,4 @@
+# normaliza o símbolo de nova linha como LF (Line Feed)
+# porque o padrão do CRLF (Carriage Return, Line Feed) do Windows
+# quebra alguns apps no Linux
+* text=auto eol=lf

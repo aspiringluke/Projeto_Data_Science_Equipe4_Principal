@@ -25,9 +25,9 @@ sudo apt-get update > /dev/null
 
 msg "Verificando KVM..."
 sudo apt-get install -y cpu-checker > /dev/null
-[[ -z "$(kvm-ok | grep 'exists')" ]] && msg "${error_color}ERROR${default_color}: KVM não encontrado" && exit 1
+[[ -z "$(kvm-ok | grep 'exists')" ]] && msg "${error_color}ERROR: KVM não encontrado${default_color}" && exit 1
 
-msg "${ok_color}OK${default_color}: KVM habilitado"
+msg "${ok_color}OK: KVM habilitado${default_color}"
 
 msg "Instalando libvirt, virsh e qemu..."
 sudo apt-get install -y qemu-kvm \
@@ -35,18 +35,18 @@ sudo apt-get install -y qemu-kvm \
                     libvirt-clients \
                     virt-manager \
                     virtinst > /dev/null
-virsh --version && msg "${ok_color}OK${default_color}: Virsh instalado" || msg "${error_color}ERROR${default_color}: virsh não encontrado"
+virsh --version && msg "${ok_color}OK: Virsh instalado${default_color}" || msg "${error_color}ERROR: virsh não encontrado${default_color}"
 
-libvirtd --version && msg "${ok_color}OK${default_color}: Libvirt instalado" || msg "${error_color}ERROR${default_color}: libvirtd não encontrado"
+libvirtd --version && msg "${ok_color}OK: Libvirt instalado${default_color}" || msg "${error_color}ERROR: libvirtd não encontrado${default_color}"
 
 
 msg "Habilitando rede pelo virsh..."
-virsh net-start default || msg "${warn_color}WARN${default_color}: Não foi possível iniciar a rede pelo virsh. Ela pode já estar ativa, verifique com ${warn_color}virsh net-list --all${default_color}"
-virsh net-autostart default || msg "${warn_color}WARN${default_color}: Não foi possível habilitar autostart pelo virsh"
+virsh net-start default || msg "${warn_color}WARN: Não foi possível iniciar a rede pelo virsh. Ela pode já estar ativa, verifique com ${warn_color}virsh net-list --all${default_color}${default_color}"
+virsh net-autostart default || msg "${warn_color}WARN: Não foi possível habilitar autostart pelo virsh${default_color}"
 
 msg "Instalando ansible..."
 sudo apt-get install -y ansible > /dev/null
-ansible --version && msg "${ok_color}OK${default_color}: Ansible instalado" || msg "${error_color}ERROR${default_color}: Ansible não encontrado"
+ansible --version && msg "${ok_color}OK: Ansible instalado${default_color}" || msg "${error_color}ERROR: Ansible não encontrado${default_color}"
 
 
 msg "Instalado OpenTofu..."
@@ -55,7 +55,7 @@ chmod +x install-opentofu.sh
 ./install-opentofu.sh --install-method deb > /dev/null
 rm install-opentofu.sh
 
-tofu version && msg "${ok_color}OK${default_color}: OpenTofu instalado" || msg "${error_color}ERROR${default_color}: OpenTofu não encontrado"
+tofu version && msg "${ok_color}OK: OpenTofu instalado${default_color}" || msg "${error_color}ERROR: OpenTofu não encontrado${default_color}"
 
 
 msg "${warn_color}WARN${default_color}: Se os comandos de rede do virsh falharam, talvez você precise ${warn_color}encerrar a sessão e realizar log in novamente${default_color}"

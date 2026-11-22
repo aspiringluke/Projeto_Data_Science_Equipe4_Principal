@@ -1,0 +1,19 @@
+name: Continuous Integration & Deployment
+
+on:
+  push:
+    branches: [ "docker-volume", "main", "principal" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Reconstruir e subir os containers na VM
+        working-directory: ./infraestrutura
+        run: |
+          docker compose down
+          docker compose up --build -d
