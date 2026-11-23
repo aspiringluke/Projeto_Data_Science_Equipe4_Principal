@@ -6,7 +6,7 @@ import csv
 
 RAIZ = Path(__file__).resolve().parents[2]
 PASTA = RAIZ / "big_data" / "testes_csv"
-ENTRADA = PASTA / ".tmp"
+ENTRADA = Path("/mnt/d/Arquivos/Downloads/csvs/csvs")
 BANCO = PASTA / "data_warehouse_teste.db"
 ORIGINAL = RAIZ / "big_data" / "scripts" / "criar_data_warehouse.py"
 
@@ -16,7 +16,7 @@ TIPOS = {
     "partidas": "partidas",
     "compras": "compras",
     "itens": "itens",
-    "itens_compras": "itens_compra",
+    "itens_compras": "itens_compras",
 }
 
 
@@ -24,7 +24,7 @@ def localizar(lote, tipo):
     prefixo = TIPOS[tipo]
     encontrados = sorted(
         p for p in ENTRADA.rglob("*.csv")
-        if p.name.startswith(f"{lote}-{prefixo}_") and " - Copia" not in p.stem
+        if p.name.startswith(f"{lote}-{prefixo}_") and p.name.endswith("_limpo.csv") and (tipo != "itens" or not p.name.startswith(f"{lote}-itens_compras_")) and " - Copia" not in p.stem
     )
     if not encontrados:
         raise ValueError(f"CSV ausente: {lote} / {prefixo}")
@@ -76,7 +76,7 @@ lotes = sorted({
 print(f"CSVs encontrados: {len(arquivos)}")
 print(f"Lotes encontrados: {len(lotes)}")
 
-if len(arquivos) != 120 or len(lotes) != 10:
+if len(arquivos) != 540 or len(lotes) != 90:
     raise SystemExit("Quantidade inesperada. Importação cancelada.")
 
 # Conferir os 6 arquivos de cada lote antes de gravar.
@@ -99,6 +99,32 @@ spec.loader.exec_module(modulo)
 modulo.DB = BANCO
 
 modulo.ler = ler_combinado
+
+# Permitir referências a jogadores de lotes anteriores.
+carregar_original = modulo.carregar
+
+class CursorCompativel:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, sql, parametros=()):
+        if "SELECT player_id, jogador_key FROM dim_jogador WHERE lote_id = ?" in sql:
+            sql = """
+                SELECT player_id, MAX(jogador_key)
+                FROM dim_jogador
+                GROUP BY player_id
+            """
+            parametros = ()
+        return self.cursor.execute(sql, parametros)
+
+    def __getattr__(self, nome):
+        return getattr(self.cursor, nome)
+
+def carregar_compativel(cur, lote_id, dados):
+    return carregar_original(CursorCompativel(cur), lote_id, dados)
+
+modulo.carregar = carregar_compativel
+
 
 # Aceitar datas ISO e datas americanas MM/DD/YYYY.
 from datetime import date as Date, datetime as DateTime
