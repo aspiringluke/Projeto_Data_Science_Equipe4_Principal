@@ -249,7 +249,7 @@
           docker run -d
           --name {{ container_name }}
           -p {{ port_host }}:{{ port_container }}
-          --restart always
+          --restart on-failure
           -v {{ dir_csvs }}:/gerador/gerador/output
           {{ app_name }}:{{ app_tag }}
       when: needs_restart
