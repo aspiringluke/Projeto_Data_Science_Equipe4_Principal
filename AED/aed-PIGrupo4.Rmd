@@ -68,7 +68,7 @@ library(here)
 base_repo = here()
 
 # 2. Verificar pasta
-pasta_dados = file.path(base_repo, "AED", "amostras", ".tmp")
+pasta_dados = file.path(base_repo, "AED")
 
 if (!dir.exists(pasta_dados)){
   stop("A pasta não existe: ", pasta_dados)
@@ -90,8 +90,8 @@ encontrar_csv = function(pasta, padrao){
 padroes = c(
   compras       = "^\\d+-compras_[0-9]{8}_.*\\.csv$",
   itens         = "^\\d+-itens_[0-9]{8}_.*\\.csv$",
-  itens_compras = "^\\d+-itens_compra_[0-9]{8}_.*\\.csv$",
-  jogadores     = "^\\d+-jogadores_[0-9]+_[0-9]{8}_.*\\.csv$",
+  itens_compras = "^\\d+-itens_compras_[0-9]{8}_.*\\.csv$",
+  jogadores     = "^\\d+-jogadores_[0-9]{8}_.*\\.csv$",
   partidas      = "^\\d+-partidas_[0-9]{8}_.*\\.csv$",
   sessoes       = "^\\d+-sessoes_[0-9]{8}_.*\\.csv$"
 )
@@ -1030,7 +1030,7 @@ corrigir_datas_compras = function(compras, sessoes) {
 
 **`data_criacao_conta`:** `datas_corrigidas` + limites que o gerador garante: a conta é criada depois dos 13 anos do jogador, depois de 2010-01-01 e antes da primeira sessão.
 
-`data_ref` é a data em que o gerador rodou (pelo nome dos arquivos, 2026-10-19). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
+`data_ref` é a data em que o gerador rodou (última data de execução do gerador). A função imprime uma conferência: o percentual das datas já em ISO cuja idade bate com `idade`.
 
 ```{r}
 
@@ -1051,7 +1051,7 @@ idade_em = function(nasc, ref) {
 corrigir_datas_jogadores = function(
   jogadores,
   sessoes,
-  data_ref = as.Date("2026-10-19")
+  data_ref = Sys.Date()
 ) {
 
   # Verifica se as duas colunas de datas ainda são textos.
@@ -1508,7 +1508,7 @@ Cada verificação conta quantas linhas violam uma regra e é registrada em um p
 
 ```{r Validação Geral}
 # Data em que o gerador rodou (HOJE do gerador). Troque se gerar os dados de novo.
-data_ref       = as.Date("2026-10-19")
+data_ref       = Sys.Date()
 fim_do_dia_ref = as.POSIXct(data_ref + 1, tz = "UTC")
 
 # Painel que acumula o resultado de cada verificação
